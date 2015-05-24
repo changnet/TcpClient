@@ -5,6 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui
+QT       += network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,7 +15,10 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         MainWindow.cpp \
-    CPlayer.cpp
+    CPlayer.cpp \
+    CNet.cpp
 
 HEADERS  += MainWindow.h \
-    CPlayer.h
+    CPlayer.h \
+    CNet.h \
+    color.h

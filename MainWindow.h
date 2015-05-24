@@ -8,6 +8,9 @@
 #include <QComboBox>
 #include <QTextEdit>
 
+#include "CPlayer.h"
+#include "color.h"
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -15,8 +18,6 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
-    QLabel status_text;
 
     QLineEdit m_le_ip;
     QLineEdit m_le_port;
@@ -29,6 +30,14 @@ public:
 
     QTextEdit m_te_input;
     QTextEdit m_te_output;
+
+    CPlayer m_player;
+public slots:
+    void on_connect();
+    void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
+
+private:
+    void set_status(const QString &st, Color color = CL_BLACK , int timeout = 5000 );
 };
 
 #endif // MAINWINDOW_H
