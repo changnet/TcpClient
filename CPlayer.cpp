@@ -2,7 +2,7 @@
 
 CPlayer::CPlayer()
 {
-    m_connector = new CNet( this );
+    m_connector = new CNet();
 }
 
 CPlayer::~CPlayer()
