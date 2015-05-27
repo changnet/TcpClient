@@ -57,6 +57,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->setCentralWidget( widget );
 
     connect( &m_pb_connect,SIGNAL(clicked()),this,SLOT(on_connect()) );
+    connect( &m_pb_disconnect,SIGNAL(clicked()),this,SLOT(on_disconnect()) );
 
     CNet *connector = m_player.get_connector();
     connect( connector,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
@@ -82,6 +83,12 @@ void MainWindow::on_connect()
 
     CNet *connector = m_player.get_connector();
     connector->connect_host( ip,port.toInt() );
+}
+
+void MainWindow::on_disconnect()
+{
+    CNet *connector = m_player.get_connector();
+    connector->disconnect_host();
 }
 
 void MainWindow::on_status(const QString &st, Color color,int timeout)

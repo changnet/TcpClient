@@ -1,6 +1,8 @@
 #include "CPlayer.h"
+#include "CProtoc.h"
 
-CPlayer::CPlayer()
+CPlayer::CPlayer(QObject *parent)
+    :QObject(parent)
 {
     m_connector = new CNet();
 }

@@ -1,12 +1,15 @@
 #ifndef CPLAYER_H
 #define CPLAYER_H
 
+#include <QObject>
 #include "CNet.h"
 
-class CPlayer
+class CPlayer : public QObject
 {
+    Q_OBJECT
+
 public:
-    CPlayer();
+    explicit CPlayer( QObject *parent = 0 );
     virtual ~CPlayer();
     CNet *get_connector();
 private:
