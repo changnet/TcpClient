@@ -6,18 +6,26 @@
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/compiler/importer.h>
 
+#include <QByteArray>
+#include <QMap>
+
 class CProtoc
 {
 public:
     static CProtoc *instance();
     static void uninstance();
+
+    bool parse_input( const QString &msg,const QString &json );
 private:
     CProtoc();
     ~CProtoc();
 
+    QMap<QString,google::protobuf::Message *> m_msg_list;
     google::protobuf::compiler::Importer *m_importer;
 
     static CProtoc *m_instance;
+
+    bool json_to_pb(const QByteArray &json, google::protobuf::Message *pmsg );
 };
 
 #endif // CPROTOC_H

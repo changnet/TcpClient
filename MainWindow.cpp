@@ -72,8 +72,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_connect()
 {
-    QString ip   = m_le_ip.text();
-    QString port = m_le_port.text();
+    QString &ip   = m_le_ip.text();
+    QString &port = m_le_port.text();
 
     if ( ip.isEmpty() || port.isEmpty() )
     {
