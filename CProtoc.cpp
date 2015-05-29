@@ -3,7 +3,6 @@
 #include "err_code.h"
 
 #include <QJsonDocument>
-#include <QJsonObject>
 #include <QJsonParseError>
 #include <QDebug>
 
@@ -68,6 +67,40 @@ bool CProtoc::parse_input(const QString &msg_name, const QString &json)
     return json_to_pb( bytes,msg );
 }
 
+bool CProtoc::json_object_to_pb(const QJsonObject &jo, google::protobuf::Message *pmsg)
+{
+    const google::protobuf::Descriptor *descriptor = pmsg->GetDescriptor();
+    const google::protobuf::Reflection *reflection = pmsg->GetReflection();
+    const google::protobuf::FieldDescriptor *field = NULL;
+
+    QJsonObject::const_iterator itr = jo.constBegin();
+    while ( itr != jo.end() )
+    {
+        QString _key = itr.key();
+        QJsonValue _value = itr.value();
+
+        field = descriptor->FindFieldByName( _key.toStdString() );
+        if ( !field )
+        {
+            m_str_err = EC_NO_FIELD;
+            return false;
+        }
+
+        if ( field->is_extension() )  //嵌套
+        {
+            if ( !_value.isObject() ) //嵌套必须对应
+            {
+                m_str_err = EC_FIELD_NOT_MATCH;
+                return false;
+            }
+
+            google::protobuf::Message *_pmsg = get_msg( _key );
+        }
+
+        itr ++;
+    }
+}
+
 bool CProtoc::json_to_pb( const QByteArray &json, google::protobuf::Message *pmsg )
 {
     QJsonParseError jpe;
@@ -85,14 +118,7 @@ bool CProtoc::json_to_pb( const QByteArray &json, google::protobuf::Message *pms
     }
 
     const QJsonObject &jo = jd.object();
-    QJsonObject::const_iterator itr = jo.constBegin();
-    while ( itr != jo.end() )
-    {
-        QString _key = itr.key();
-        QJsonValue _value = itr.value();
-
-        itr ++;
-    }
+    json_object_to_pb( jo,pmsg );
 
     return true;
 }

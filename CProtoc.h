@@ -6,6 +6,7 @@
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/compiler/importer.h>
 
+#include <QJsonObject>
 #include <QByteArray>
 #include <QString>
 #include <QMap>
@@ -30,6 +31,7 @@ private:
     static CProtoc *m_instance;
 
     google::protobuf::Message *get_msg(const QString &msg_name);
+    bool json_object_to_pb( const QJsonObject &jo,google::protobuf::Message *pmsg );
     bool json_to_pb(const QByteArray &json, google::protobuf::Message *pmsg );
 };
 
