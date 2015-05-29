@@ -4,12 +4,13 @@ CConfig *CConfig::m_config = NULL;
 
 CConfig::CConfig()
 {
-    m_proto_files.push_back( "InterCmd.proto" );
+    //TODO:test data
+    m_proto_source = ".";
+    m_proto_files.push_back( "addressbook.proto" );
 }
 
 CConfig::~CConfig()
 {
-
 }
 
 CConfig *CConfig::instance()
@@ -30,7 +31,7 @@ void CConfig::uninstance()
 
 const std::string &CConfig::proto_source()
 {
-    return ".";
+    return m_proto_source;
 }
 
 /**

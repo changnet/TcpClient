@@ -12,6 +12,9 @@ public:
     explicit CPlayer( QObject *parent = 0 );
     virtual ~CPlayer();
     CNet *get_connector();
+    bool send_package( const int code,const QString &msg_name,const QString &json );
+signals:
+    void sig_msg(const QString &st,Color color,int timeout);
 private:
     CNet *m_connector;
 };

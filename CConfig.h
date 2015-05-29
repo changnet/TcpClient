@@ -16,6 +16,7 @@ private:
     CConfig();
     ~CConfig();
 
+    std::string m_proto_source;
     QList<std::string> m_proto_files;
     QMap<int,std::string> m_code_to_msg;
 

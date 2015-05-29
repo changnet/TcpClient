@@ -31,8 +31,11 @@ public:
     QTextEdit m_te_input;
     QTextEdit m_te_output;
 
+    QPushButton m_pb_send;
+
     CPlayer m_player;
 public slots:
+    void on_send();
     void on_connect();
     void on_disconnect();
     void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );

@@ -8,6 +8,8 @@ QT       += core gui
 QT       += network
 CONFIG   += warn_off
 
+QMAKE_CXXFLAGS += -std=c++0x -O0
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = TcpClient
@@ -27,7 +29,8 @@ HEADERS  += MainWindow.h \
     color.h \
     CBuf.h \
     CProtoc.h \
-    CConfig.h
+    CConfig.h \
+    err_code.h
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lprotobuf
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lprotobuf
