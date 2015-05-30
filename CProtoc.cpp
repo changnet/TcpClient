@@ -4,7 +4,9 @@
 
 #include <QJsonDocument>
 #include <QJsonParseError>
-#include <QDebug>
+#include <QJsonArray>
+
+#include <google/protobuf/stubs/common.h>
 
 CProtoc *CProtoc::m_instance = NULL;
 CProtoc::CProtoc()
@@ -55,8 +57,8 @@ void CProtoc::uninstance()
 
 bool CProtoc::parse_input(const QString &msg_name, const QString &json)
 {
-    google::protobuf::Message *msg = get_msg( msg_name );
-    if ( !msg )
+    google::protobuf::Message *pmsg = get_msg( msg_name );
+    if ( !pmsg )
     {
         m_str_err = EC_NO_MSG;
         return false;
@@ -64,47 +66,8 @@ bool CProtoc::parse_input(const QString &msg_name, const QString &json)
 
     const QByteArray &bytes = json.toUtf8();
 
-    return json_to_pb( bytes,msg );
-}
-
-bool CProtoc::json_object_to_pb(const QJsonObject &jo, google::protobuf::Message *pmsg)
-{
-    const google::protobuf::Descriptor *descriptor = pmsg->GetDescriptor();
-    const google::protobuf::Reflection *reflection = pmsg->GetReflection();
-    const google::protobuf::FieldDescriptor *field = NULL;
-
-    QJsonObject::const_iterator itr = jo.constBegin();
-    while ( itr != jo.end() )
-    {
-        QString _key = itr.key();
-        QJsonValue _value = itr.value();
-
-        field = descriptor->FindFieldByName( _key.toStdString() );
-        if ( !field )
-        {
-            m_str_err = EC_NO_FIELD;
-            return false;
-        }
-
-        if ( field->is_extension() )  //嵌套
-        {
-            if ( !_value.isObject() ) //嵌套必须对应
-            {
-                m_str_err = EC_FIELD_NOT_MATCH;
-                return false;
-            }
-
-            google::protobuf::Message *_pmsg = get_msg( _key );
-        }
-
-        itr ++;
-    }
-}
-
-bool CProtoc::json_to_pb( const QByteArray &json, google::protobuf::Message *pmsg )
-{
     QJsonParseError jpe;
-    QJsonDocument jd = QJsonDocument::fromJson( json,&jpe );
+    QJsonDocument jd = QJsonDocument::fromJson( bytes,&jpe );
     if ( QJsonParseError::NoError != jpe.error )
     {
         m_str_err = jpe.errorString();
@@ -117,15 +80,173 @@ bool CProtoc::json_to_pb( const QByteArray &json, google::protobuf::Message *pms
         return false;
     }
 
-    const QJsonObject &jo = jd.object();
-    json_object_to_pb( jo,pmsg );
-
-    return true;
+    return json_object_to_pb( jd.object(),pmsg );
 }
 
+/**
+ * @brief CProtoc::fill_field
+ * @param field
+ * @param value
+ * @return
+ * 填充一个字段
+ */
+bool CProtoc::fill_field(google::protobuf::Message *pmsg,
+                         const google::protobuf::FieldDescriptor *field, const QJsonValue &value)
+{
+    const google::protobuf::Reflection *reflection = pmsg->GetReflection();
+
+    switch( field->cpp_type() )
+    {
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT32 :
+        reflection->SetInt32(pmsg,field,value.toInt());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT64 :
+        reflection->SetInt64(pmsg,field,static_cast<google::protobuf::int64>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT32 :
+        reflection->SetUInt32(pmsg,field,static_cast<google::protobuf::uint32>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT64 :
+        reflection->SetUInt64(pmsg,field,static_cast<google::protobuf::uint64>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE :
+        reflection->SetDouble(pmsg,field,value.toDouble());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT :
+        reflection->SetFloat(pmsg,field,static_cast<float>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_BOOL :
+        reflection->SetBool(pmsg,field,value.toBool());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_ENUM :
+        /* If the value does not correspond to a known enum value ...*/
+        reflection->SetEnumValue(pmsg,field,value.toInt());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_STRING :
+        reflection->SetString(pmsg,field,value.toString().toStdString());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE :
+        if ( !value.isObject() ) //嵌套必须对应object
+        {
+            m_str_err = EC_FIELD_NOT_MATCH;
+            return false;
+        }
+
+        google::protobuf::Message *sub_msg = reflection->MutableMessage( pmsg,field );
+        json_object_to_pb( value.toObject(),sub_msg );
+
+        break;
+    }
+}
+
+/**
+ * @brief CProtoc::add_field
+ * @param pmsg
+ * @param field
+ * @param value
+ * @return
+ * 给数组类型字段添加元素
+ */
+bool CProtoc::add_field(google::protobuf::Message *pmsg,
+                        const google::protobuf::FieldDescriptor *field, const QJsonValue &value)
+{
+    const google::protobuf::Reflection *reflection = pmsg->GetReflection();
+    switch( field->cpp_type() )
+    {
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT32 :
+        reflection->AddInt32(pmsg,field,value.toInt());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT64 :
+        reflection->AddInt64(pmsg,field,static_cast<google::protobuf::int64>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT32 :
+        reflection->AddUInt32(pmsg,field,static_cast<google::protobuf::uint32>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT64 :
+        reflection->AddUInt64(pmsg,field,static_cast<google::protobuf::uint64>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE :
+        reflection->AddDouble(pmsg,field,value.toDouble());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT :
+        reflection->AddFloat(pmsg,field,static_cast<float>(value.toDouble()));
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_BOOL :
+        reflection->AddBool(pmsg,field,value.toBool());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_ENUM :
+        /* If the value does not correspond to a known enum value ...*/
+        reflection->AddEnumValue(pmsg,field,value.toInt());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_STRING :
+        reflection->AddString(pmsg,field,value.toString().toStdString());
+        break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE :
+        if ( !value.isObject() ) //嵌套必须对应object
+        {
+            m_str_err = EC_FIELD_NOT_MATCH;
+            return false;
+        }
+
+        google::protobuf::Message *sub_msg = reflection->AddMessage( pmsg,field );
+        json_object_to_pb( value.toObject(),sub_msg );
+
+        break;
+    }
+}
+
+bool CProtoc::json_object_to_pb( const QJsonObject &jo, google::protobuf::Message *pmsg )
+{
+    pmsg->Clear();/* clear old data,not memory it holds */
+
+    const google::protobuf::Descriptor *descriptor = pmsg->GetDescriptor();
+    const google::protobuf::FieldDescriptor *field = NULL;
+
+    QJsonObject::const_iterator itr = jo.constBegin();
+    while ( itr != jo.end() )
+    {
+        QString _key = itr.key();
+        const QJsonValue &_value = itr.value();
+
+        field = descriptor->FindFieldByName( _key.toStdString() );
+        if ( !field )
+        {
+            m_str_err = EC_NO_FIELD;
+            return false;
+        }
+
+        if ( field->is_repeated() ) //数组
+        {
+            if ( !_value.isArray() ) //对应数组
+            {
+                m_str_err = EC_FIELD_NOT_MATCH;
+                return false;
+            }
+
+            const QJsonArray &array = _value.toArray();
+            QJsonArray::const_iterator _itr = array.constBegin();
+            while ( _itr != array.constEnd() )
+            {
+                add_field( pmsg,field,*_itr );
+            }
+        }
+        else
+            fill_field( pmsg,field,*itr );
+
+        itr ++;
+    }
+}
+
+/**
+ * @brief CProtoc::get_msg
+ * @param msg_name
+ * @return
+ * 不能把消息放在map中重复使用，要考虑同一个消息里某个类型
+ * 为数组
+ */
 google::protobuf::Message *CProtoc::get_msg(const QString &msg_name)
 {
-    if ( !m_msg_list.contains( msg_name ) )
+    if ( false/*!m_msg_list.contains( msg_name )*/ )
     {
         const google::protobuf::Descriptor *descriptor = m_importer->pool()->FindMessageTypeByName( msg_name.toStdString() );
         if ( !descriptor )  //can't find such a message
@@ -134,7 +255,8 @@ google::protobuf::Message *CProtoc::get_msg(const QString &msg_name)
         const google::protobuf::Message *message = m_factor->GetPrototype( descriptor );
         google::protobuf::Message *_msg = message->New();
 
-        m_msg_list.insert( msg_name,_msg );
+        //TODO:New出来内存如何销毁
+        //m_msg_list.insert( msg_name,_msg );
 
         return _msg;
     }

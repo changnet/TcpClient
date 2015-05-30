@@ -31,8 +31,11 @@ private:
     static CProtoc *m_instance;
 
     google::protobuf::Message *get_msg(const QString &msg_name);
-    bool json_object_to_pb( const QJsonObject &jo,google::protobuf::Message *pmsg );
-    bool json_to_pb(const QByteArray &json, google::protobuf::Message *pmsg );
+    bool json_object_to_pb(const QJsonObject &jo, google::protobuf::Message *pmsg );
+    bool fill_field(google::protobuf::Message *pmsg,
+                    const google::protobuf::FieldDescriptor *field, const QJsonValue &value );
+    bool add_field(google::protobuf::Message *pmsg,
+                    const google::protobuf::FieldDescriptor *field, const QJsonValue &value );
 };
 
 #endif // CPROTOC_H
