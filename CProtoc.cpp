@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QJsonArray>
+#include <QDebug>
 
 #include <google/protobuf/stubs/common.h>
 
@@ -80,7 +81,10 @@ bool CProtoc::parse_input(const QString &msg_name, const QString &json)
         return false;
     }
 
-    return json_object_to_pb( jd.object(),pmsg );
+    bool ret = json_object_to_pb( jd.object(),pmsg );
+
+    qDebug() << pmsg->DebugString().c_str();
+    return ret;
 }
 
 /**
@@ -126,6 +130,7 @@ bool CProtoc::fill_field(google::protobuf::Message *pmsg,
         reflection->SetString(pmsg,field,value.toString().toStdString());
         break;
     case google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE :
+    {
         if ( !value.isObject() ) //嵌套必须对应object
         {
             m_str_err = EC_FIELD_NOT_MATCH;
@@ -135,8 +140,13 @@ bool CProtoc::fill_field(google::protobuf::Message *pmsg,
         google::protobuf::Message *sub_msg = reflection->MutableMessage( pmsg,field );
         json_object_to_pb( value.toObject(),sub_msg );
 
-        break;
+    }break;
+    default:
+        m_str_err = QString("unknow type when fill field:%1").arg(field->full_name().c_str());
+        return false;
     }
+
+    return true;
 }
 
 /**
@@ -182,17 +192,23 @@ bool CProtoc::add_field(google::protobuf::Message *pmsg,
         reflection->AddString(pmsg,field,value.toString().toStdString());
         break;
     case google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE :
+    {
         if ( !value.isObject() ) //嵌套必须对应object
         {
             m_str_err = EC_FIELD_NOT_MATCH;
             return false;
         }
-
         google::protobuf::Message *sub_msg = reflection->AddMessage( pmsg,field );
         json_object_to_pb( value.toObject(),sub_msg );
 
+    }break;
+    default:
+        m_str_err = QString("unknow type when add field:%1").arg(field->full_name().c_str());
+        return false;
         break;
     }
+
+    return true;
 }
 
 bool CProtoc::json_object_to_pb( const QJsonObject &jo, google::protobuf::Message *pmsg )
@@ -227,14 +243,22 @@ bool CProtoc::json_object_to_pb( const QJsonObject &jo, google::protobuf::Messag
             QJsonArray::const_iterator _itr = array.constBegin();
             while ( _itr != array.constEnd() )
             {
-                add_field( pmsg,field,*_itr );
+                if ( !add_field( pmsg,field,*_itr ) )
+                    return false;
+
+                _itr ++;
             }
         }
         else
-            fill_field( pmsg,field,*itr );
+        {
+            if ( !fill_field( pmsg,field,*itr ) )
+                return false;
+        }
 
         itr ++;
     }
+
+    return true;
 }
 
 /**
@@ -246,7 +270,7 @@ bool CProtoc::json_object_to_pb( const QJsonObject &jo, google::protobuf::Messag
  */
 google::protobuf::Message *CProtoc::get_msg(const QString &msg_name)
 {
-    if ( false/*!m_msg_list.contains( msg_name )*/ )
+    if ( true/*!m_msg_list.contains( msg_name )*/ )
     {
         const google::protobuf::Descriptor *descriptor = m_importer->pool()->FindMessageTypeByName( msg_name.toStdString() );
         if ( !descriptor )  //can't find such a message
