@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     CNet.cpp \
     CBuf.cpp \
     CProtoc.cpp \
-    CConfig.cpp
+    CConfig.cpp \
+    CProtoFileErrorCollector.cpp
 
 HEADERS  += MainWindow.h \
     CPlayer.h \
@@ -30,7 +31,8 @@ HEADERS  += MainWindow.h \
     CBuf.h \
     CProtoc.h \
     CConfig.h \
-    err_code.h
+    err_code.h \
+    CProtoFileErrorCollector.h
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lprotobuf
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lprotobuf

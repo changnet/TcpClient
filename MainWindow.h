@@ -35,10 +35,12 @@ public:
 
     CPlayer m_player;
 public slots:
+    void on_output( const QString &st,Color color = CL_BLACK );
     void on_send();
     void on_connect();
     void on_disconnect();
     void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
+    void on_import_proto_files();
 
 private:
     void set_status(const QString &st, Color color = CL_BLACK , int timeout = 5000 );

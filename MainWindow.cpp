@@ -1,4 +1,6 @@
 #include "MainWindow.h"
+#include "CProtoc.h"
+#include "CConfig.h"
 
 #include <QStatusBar>
 #include <QGridLayout>
@@ -81,12 +83,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect( connector,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
 
+    m_te_output.setReadOnly( true );
     set_status( "ready",CL_GREEN,0 );
+
+    //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
+    on_import_proto_files();
 }
 
 MainWindow::~MainWindow()
 {
-
+    CProtoc::uninstance();
+    CConfig::uninstance();
 }
 
 void MainWindow::on_connect()
@@ -154,4 +161,47 @@ void MainWindow::on_send()
     }
 
     m_player.send_package( str_code.toInt(),str_msg_name,str_send );
+}
+
+void MainWindow::on_output(const QString &st, Color color)
+{
+    QString cl;
+    switch ( color )
+    {
+    case CL_RED   : cl = "red";break;
+    case CL_GREEN : cl = "green";break;
+    case CL_BLACK : cl = "black";break;
+    default       : cl = "black";break;
+    }
+
+    static QString start_pre = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    static QString end_pre   = "\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+    m_te_output.setTextColor( QColor(cl) );
+
+    m_te_output.append( start_pre );
+    m_te_output.append( st );
+    m_te_output.append( end_pre );
+
+    m_te_output.setTextColor( QColor("black") );
+}
+
+void MainWindow::on_import_proto_files()
+{
+    CProtoc *protoc = CProtoc::instance();
+    protoc->import_proto_files();
+
+    CProtoFileErrorCollector *collector = protoc->get_error_collector();
+    const QList<QString> &err_list = collector->get_error_list();
+
+    QList<QString>::const_iterator itr = err_list.constBegin();
+
+    m_te_output.setTextColor( QColor("red") );
+    while ( itr != err_list.constEnd() )
+    {
+        m_te_output.append( *itr );
+        m_te_output.append( "\n" );
+
+        itr ++;
+    }
+    m_te_output.setTextColor( QColor("black") );
 }

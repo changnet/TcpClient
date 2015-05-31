@@ -11,31 +11,35 @@
 #include <QString>
 #include <QMap>
 
+#include <CProtoFileErrorCollector.h>
+
 class CProtoc
 {
 public:
     static CProtoc *instance();
     static void uninstance();
 
-    bool parse_input(const QString &msg_name, const QString &json );
+    bool import_proto_files();
+    bool parse_input(const QString &msg_name, const QString &text );
     const QString &get_last_err_str();
+    void on_proto_err( const char *msg );
+
+    CProtoFileErrorCollector *get_error_collector();
 private:
     CProtoc();
     ~CProtoc();
 
-    QMap<QString,google::protobuf::Message *> m_msg_list;
     google::protobuf::compiler::Importer *m_importer;
     google::protobuf::DynamicMessageFactory *m_factor;
+    CProtoFileErrorCollector *m_err_collector;
 
     QString m_str_err;
     static CProtoc *m_instance;
 
     google::protobuf::Message *get_msg(const QString &msg_name);
-    bool json_object_to_pb(const QJsonObject &jo, google::protobuf::Message *pmsg );
-    bool fill_field(google::protobuf::Message *pmsg,
-                    const google::protobuf::FieldDescriptor *field, const QJsonValue &value );
-    bool add_field(google::protobuf::Message *pmsg,
-                    const google::protobuf::FieldDescriptor *field, const QJsonValue &value );
+    QString msg_example_str(google::protobuf::Message *msg, const QString &indent = "");
+
+    void reset_proto();
 };
 
 #endif // CPROTOC_H
