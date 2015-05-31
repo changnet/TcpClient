@@ -19,13 +19,29 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+public slots:
+    void on_output( const QString &st,Color color = CL_BLACK );
+    void on_send();
+    void on_connect();
+    void on_disconnect();
+    void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
+    void on_import_proto_files();
+    void on_parse_lua_config();
+
+    void on_code_index_change(const QString &text);
+    void on_msg_index_change(const QString &text);
+
+private:
+    void set_status(const QString &st, Color color = CL_BLACK , int timeout = 5000 );
+
+private:
     QLineEdit m_le_ip;
     QLineEdit m_le_port;
     QPushButton m_pb_connect;
     QPushButton m_pb_disconnect;
 
-    QComboBox m_cb_proto;
-    QLineEdit m_le_proname;
+    QComboBox m_cb_code;
+    QComboBox m_cb_msg;
     QPushButton m_pb_reload;
 
     QTextEdit m_te_input;
@@ -34,16 +50,6 @@ public:
     QPushButton m_pb_send;
 
     CPlayer m_player;
-public slots:
-    void on_output( const QString &st,Color color = CL_BLACK );
-    void on_send();
-    void on_connect();
-    void on_disconnect();
-    void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
-    void on_import_proto_files();
-
-private:
-    void set_status(const QString &st, Color color = CL_BLACK , int timeout = 5000 );
 };
 
 #endif // MAINWINDOW_H

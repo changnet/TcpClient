@@ -23,6 +23,7 @@ public:
     bool parse_input(const QString &msg_name, const QString &text );
     const QString &get_last_err_str();
     void on_proto_err( const char *msg );
+    QString get_msg_example_str( const QString &msg_name );
 
     CProtoFileErrorCollector *get_error_collector();
 private:

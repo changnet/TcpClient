@@ -37,16 +37,16 @@ bool CProtoc::import_proto_files()
     google::protobuf::SetLogHandler(ProtoLogHandler);
 
     google::protobuf::compiler::DiskSourceTree disk_source;
-    disk_source.MapPath( "",config->proto_source() );
+    disk_source.MapPath( "",config->proto_source().toStdString() );
 
     m_err_collector = new CProtoFileErrorCollector();
     m_importer = new google::protobuf::compiler::Importer( &disk_source,m_err_collector );
 
-    const QList<std::string> &files = config->proto_files();
-    QList<std::string>::const_iterator itr = files.constBegin();
+    const QList<QString> &files = config->proto_files();
+    QList<QString>::const_iterator itr = files.constBegin();
     while ( itr != files.end() )
     {
-        m_importer->Import( *itr );
+        m_importer->Import( (*itr).toStdString() );
         itr ++;
     }
 
@@ -96,8 +96,6 @@ bool CProtoc::parse_input(const QString &msg_name, const QString &text)
         m_str_err = EC_NO_MSG % msg_name ;
         return false;
     }
-
-    qDebug() << msg_example_str( pmsg );
 
     bool ret = google::protobuf::TextFormat::ParseFromString( text.toStdString(),pmsg );
     qDebug() << pmsg->DebugString().c_str();
@@ -162,6 +160,20 @@ QString CProtoc::msg_example_str(google::protobuf::Message *msg, const QString &
 
     if ( !indent.isEmpty() ) //首层不需要{}，但嵌套需要
         str = "{\n" % str % "}\n";
+
+    return str;
+}
+
+QString CProtoc::get_msg_example_str(const QString &msg_name)
+{
+    google::protobuf::Message *pmsg = get_msg( msg_name );
+    if ( !pmsg )
+    {
+        return "";
+    }
+    QString str =  msg_example_str( pmsg );
+
+    delete pmsg;
 
     return str;
 }

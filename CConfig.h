@@ -1,7 +1,7 @@
 #ifndef CCONFIG_H
 #define CCONFIG_H
 
-#include <string>
+#include <QString>
 #include <QMap>
 
 class CConfig
@@ -10,15 +10,20 @@ public:
     static CConfig *instance();
     static void uninstance();
 
-    const std::string &proto_source();
-    const QList<std::string> &proto_files();
+    const QString &proto_source();
+    const QList<QString> &proto_files();
+
+    bool parse_lua_config();
+    int get_code( const QString &msg );
+    const QString &get_msg( int code );
+    const QMap<int,QString> &get_code_msg_list();
 private:
     CConfig();
     ~CConfig();
 
-    std::string m_proto_source;
-    QList<std::string> m_proto_files;
-    QMap<int,std::string> m_code_to_msg;
+    QString m_proto_source;
+    QList<QString> m_proto_files;
+    QMap<int,QString> m_code_to_msg;
 
     static CConfig *m_config;
 };

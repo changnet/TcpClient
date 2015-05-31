@@ -6,6 +6,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QAbstractItemView>
 #include <QString>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -38,12 +39,13 @@ MainWindow::MainWindow(QWidget *parent)
     m_pb_reload.setText( "reload msg" );
     QLabel *label_code = new QLabel( "CODE:" );
     QLabel *label_msg = new QLabel( "MSG:" );
-    m_cb_proto.setEditable( true );
+    m_cb_code.view()->setMinimumHeight( 60 );
+    m_cb_msg.view()->setMinimumHeight( 60 );
 
     pprolayout->addWidget( label_code);
-    pprolayout->addWidget( &m_cb_proto );
+    pprolayout->addWidget( &m_cb_code );
     pprolayout->addWidget( label_msg );
-    pprolayout->addWidget( &m_le_proname );
+    pprolayout->addWidget( &m_cb_msg );
     pprolayout->addWidget( &m_pb_reload );
 
     ////////////////////////////////////////////////控制栏///////////////////////////////////////////////
@@ -84,10 +86,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
 
     m_te_output.setReadOnly( true );
+    m_cb_code.setEditable( true );
+    m_cb_msg.setEditable( true );
+
     set_status( "ready",CL_GREEN,0 );
 
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
     on_import_proto_files();
+    on_parse_lua_config();
 }
 
 MainWindow::~MainWindow()
@@ -146,8 +152,8 @@ void MainWindow::on_send()
         return;
     }
 
-    const QString &str_code = m_cb_proto.currentText();
-    const QString &str_msg_name = m_le_proname.text();
+    const QString &str_code = m_cb_code.currentText();
+    const QString &str_msg_name = m_cb_msg.currentText();
     if ( str_code.isEmpty() )
     {
         set_status( "no protocol code is specified",CL_RED );
@@ -204,4 +210,57 @@ void MainWindow::on_import_proto_files()
         itr ++;
     }
     m_te_output.setTextColor( QColor("black") );
+}
+
+void MainWindow::on_parse_lua_config()
+{
+    //disconnect( &m_cb_code,SIGNAL(currentIndexChanged(int)),this,SLOT(on_code_index_change(int)) );
+    //disconnect( &m_cb_msg,SIGNAL(currentIndexChanged(int)),this,SLOT(on_msg_index_change(int)) );
+
+    m_cb_code.clear();
+    m_cb_msg.clear();
+
+    CConfig *config = CConfig::instance();
+
+    config->parse_lua_config();
+
+    const QMap<int,QString> &code_msg_list = config->get_code_msg_list();
+    QMap<int,QString>::const_iterator itr = code_msg_list.constBegin();
+    while( itr != code_msg_list.constEnd() )
+    {
+        m_cb_code.addItem( QString("%1").arg(itr.key()) );
+        m_cb_msg.addItem( itr.value() );
+
+        itr ++;
+    }
+
+    m_cb_code.setCurrentText( "" );
+    m_cb_msg.setCurrentText( "" );
+    //虽然设置为空，但这时currentIndex都为0，即第一个
+
+    connect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
+    connect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
+}
+
+void MainWindow::on_code_index_change(const QString &text)
+{
+    Q_UNUSED(text);
+
+    //插入数据时，会触发，这时另一个不一定有相同的索引
+    int index = m_cb_code.currentIndex();
+    if ( m_cb_msg.count() - 1 < index )
+        return;
+
+    m_cb_msg.setCurrentIndex(index); //on_parse_lua_config中是对应位置的，index应该也是对应的
+}
+
+void MainWindow::on_msg_index_change(const QString &text)
+{
+    int index = m_cb_msg.currentIndex();
+    if ( m_cb_code.count() - 1 < index )
+        return;
+
+    m_cb_code.setCurrentIndex(index);
+
+    m_te_input.setText( CProtoc::instance()->get_msg_example_str(text) );
 }
