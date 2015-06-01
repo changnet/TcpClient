@@ -7,7 +7,7 @@ CConfig::CConfig()
     //TODO:test data
     m_proto_source = ".";
 
-    m_proto_files.push_back( "addressbook.proto" );
+    m_proto_files.push_back( "Login.proto" );
 }
 
 CConfig::~CConfig()
@@ -49,7 +49,10 @@ bool CConfig::parse_lua_config()
 {
     m_code_to_msg.clear();
 
-    m_code_to_msg[1] = "Test";
+    m_code_to_msg[20001] = "CLogin";
+    m_code_to_msg[40001] = "SLogin";
+    m_code_to_msg[20002] = "CCreateRole";
+    m_code_to_msg[25001] = "CStartGame";
 
     return true;
 }
@@ -74,7 +77,7 @@ const QString &CConfig::get_msg(int code)
     if ( m_code_to_msg.contains( code ) )
         return m_code_to_msg[code];
 
-    return 0;
+    return "";
 }
 
 const QMap<int,QString> &CConfig::get_code_msg_list()

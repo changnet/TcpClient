@@ -3,10 +3,7 @@
 
 #define EC_SUCESS             "sucess"
 #define EC_NO_MSG             "no such protobuf msg found:"
-#define EC_JS_NOT_OBJ         "json is not a object"
-#define EC_NO_FIELD           "protobuf field not found:"
-#define EC_FIELD_NOT_MATCH    "field not match:"
-#define EC_JSON_ERR           "parse json error:"
+#define EC_BUF_OVERFLOW       "buf overflow"
 
 #endif // ERR_CODE_H
 

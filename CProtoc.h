@@ -13,6 +13,14 @@
 
 #include <CProtoFileErrorCollector.h>
 
+#define DEFAULT_BUF_LEN 65535 //64*1024-1
+
+struct PROTO_BUF
+{
+    char buf[DEFAULT_BUF_LEN];
+    int len;
+};
+
 class CProtoc
 {
 public:
@@ -26,6 +34,10 @@ public:
     QString get_msg_example_str( const QString &msg_name );
 
     CProtoFileErrorCollector *get_error_collector();
+    const PROTO_BUF &get_proto_buf();
+
+    bool parse_package( const QString &msg_name,const char *buf,int len );
+    const QString &get_package_str();
 private:
     CProtoc();
     ~CProtoc();
@@ -35,6 +47,8 @@ private:
     CProtoFileErrorCollector *m_err_collector;
 
     QString m_str_err;
+    QString m_package_str;
+    struct PROTO_BUF m_proto_buf;
     static CProtoc *m_instance;
 
     google::protobuf::Message *get_msg(const QString &msg_name);

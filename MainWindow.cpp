@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QAbstractItemView>
 #include <QString>
+#include <QFont>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -145,12 +146,8 @@ void MainWindow::set_status(const QString &st, Color color,int timeout)
 
 void MainWindow::on_send()
 {
+    /* some package maybe empty */
     const QString &str_send = m_te_input.toPlainText();
-    if ( str_send.isEmpty() )
-    {
-        set_status( "nothing to be send",CL_RED );
-        return;
-    }
 
     const QString &str_code = m_cb_code.currentText();
     const QString &str_msg_name = m_cb_msg.currentText();
@@ -169,26 +166,39 @@ void MainWindow::on_send()
     m_player.send_package( str_code.toInt(),str_msg_name,str_send );
 }
 
-void MainWindow::on_output(const QString &st, Color color)
+void MainWindow::on_package(const QString msg_name,int code,int err,const QString str)
 {
-    QString cl;
-    switch ( color )
+    QFont font = m_te_output.currentFont();
+    QFontMetrics fm(font);
+    QString str_info = QString("MSG:%1 CODE:%2 ERR:%3").arg(msg_name).arg(code).arg(err);
+
+    int info_len = fm.width( str_info ); //得到字符串像素长度
+    int width = m_te_output.width();     //输出框像素长度
+    int prefix_len = fm.width(">");      //前缀像素长度
+    int sufix_len  = fm.width("<");      //后缀像素长度
+
+    int prefix_cnt = (width - info_len)/prefix_len;
+    int sufix_cnt  = width/sufix_len;
+
+    int cnt = prefix_cnt/2;
+    while ( cnt > 0)
     {
-    case CL_RED   : cl = "red";break;
-    case CL_GREEN : cl = "green";break;
-    case CL_BLACK : cl = "black";break;
-    default       : cl = "black";break;
+        m_te_output.append( ">" );
+        cnt --;
+    }
+    m_te_output.append(str_info);
+    cnt = prefix_cnt/2;
+    while ( cnt > 0)
+    {
+        m_te_output.append( ">" );
+        cnt --;
     }
 
-    static QString start_pre = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-    static QString end_pre   = "\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-    m_te_output.setTextColor( QColor(cl) );
-
-    m_te_output.append( start_pre );
-    m_te_output.append( st );
-    m_te_output.append( end_pre );
-
-    m_te_output.setTextColor( QColor("black") );
+    while (sufix_cnt > 0)
+    {
+        m_te_output.append( "<" );
+        sufix_cnt --;
+    }
 }
 
 void MainWindow::on_import_proto_files()

@@ -98,7 +98,23 @@ bool CProtoc::parse_input(const QString &msg_name, const QString &text)
     }
 
     bool ret = google::protobuf::TextFormat::ParseFromString( text.toStdString(),pmsg );
-    qDebug() << pmsg->DebugString().c_str();
+    if ( ret )
+    {
+        int len = pmsg->ByteSize();
+        if ( DEFAULT_BUF_LEN < len )
+        {
+            m_str_err = EC_BUF_OVERFLOW;
+            ret =  false;
+        }
+        else
+        {
+            m_proto_buf.len = len;
+            ret = pmsg->SerializeToArray( m_proto_buf.buf,len );
+        }
+    }
+
+    delete pmsg;
+
     return ret;
 }
 
@@ -176,4 +192,34 @@ QString CProtoc::get_msg_example_str(const QString &msg_name)
     delete pmsg;
 
     return str;
+}
+
+const PROTO_BUF &CProtoc::get_proto_buf()
+{
+    return m_proto_buf;
+}
+
+bool CProtoc::parse_package(const QString &msg_name, const char *buf, int len)
+{
+    google::protobuf::Message *pmsg = get_msg( msg_name );
+    if ( !pmsg )
+    {
+        m_str_err = EC_NO_MSG % msg_name ;
+        return false;
+    }
+
+    bool ret = pmsg->ParseFromArray( buf,len );
+    if ( ret )
+    {
+        m_package_str = QString( pmsg->DebugString().c_str() );
+    }
+
+    delete pmsg;
+
+    return ret;
+}
+
+const QString &CProtoc::get_package_str()
+{
+    return m_package_str;
 }

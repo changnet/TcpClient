@@ -1,5 +1,8 @@
 #include "CBuf.h"
 
+#include <QDataStream>
+#include <QDebug>
+
 CBuf::CBuf()
 {
 
@@ -12,7 +15,11 @@ CBuf::~CBuf()
 
 bool CBuf::parse()
 {
-    return true;
+    //未收完足够数据
+    if ( size() < expect_len() )
+        return true;
+
+    return m_buf_len > 0 ? parse_data() : parse_head();
 }
 
 /**
@@ -29,17 +36,26 @@ int CBuf::expect_len()
 
 bool CBuf::parse_head()
 {
+    m_buf_len = *(reinterpret_cast<qint32 *>(data()));
+    this->clear();
+
     return true;
 }
 
 bool CBuf::parse_data()
 {
+    m_is_done = true;
     return true;
 }
 
 void CBuf::reset()
 {
+    m_is_done = false;
     m_buf_len = 0;
     this->clear();
 }
 
+bool CBuf::is_parse_done()
+{
+    return m_is_done;
+}

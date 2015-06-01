@@ -14,8 +14,10 @@ public:
     void reset();
     int expect_len();
     bool parse();
+    bool is_parse_done();
 private:
-    int m_buf_len;
+    quint32 m_buf_len;
+    bool m_is_done;
 
     bool parse_head();
     bool parse_data();
