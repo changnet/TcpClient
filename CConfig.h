@@ -26,6 +26,8 @@ private:
     QMap<int,QString> m_code_to_msg;
 
     static CConfig *m_config;
+
+    bool load_lua_cmd();
 };
 
 #endif // CCONFIG_H

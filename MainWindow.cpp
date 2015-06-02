@@ -9,6 +9,8 @@
 #include <QAbstractItemView>
 #include <QString>
 #include <QFont>
+#include <QSettings>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -36,30 +38,33 @@ MainWindow::MainWindow(QWidget *parent)
 
     ///////////////////////////////////////////////协议栏////////////////////////////////////////////////
 
-    QHBoxLayout *pprolayout = new QHBoxLayout();
-    m_pb_reload.setText( "reload msg" );
+    QGridLayout *pprolayout = new QGridLayout();
+    m_pb_send.setText( "send" );
     QLabel *label_code = new QLabel( "CODE:" );
     QLabel *label_msg = new QLabel( "MSG:" );
     m_cb_code.view()->setMinimumHeight( 60 );
     m_cb_msg.view()->setMinimumHeight( 60 );
 
-    pprolayout->addWidget( label_code);
-    pprolayout->addWidget( &m_cb_code );
-    pprolayout->addWidget( label_msg );
-    pprolayout->addWidget( &m_cb_msg );
-    pprolayout->addWidget( &m_pb_reload );
+    pprolayout->setColumnStretch(1,1);
+    pprolayout->setColumnStretch(3,3);
+
+    pprolayout->addWidget( label_code,0,0);
+    pprolayout->addWidget( &m_cb_code,0,1 );
+    pprolayout->addWidget( label_msg,0,2 );
+    pprolayout->addWidget( &m_cb_msg,0,3 );
+    pprolayout->addWidget( &m_pb_send,0,4 );
 
     ////////////////////////////////////////////////控制栏///////////////////////////////////////////////
-    QHBoxLayout *pctrllayout = new QHBoxLayout();
-    m_pb_send.setText( "send" );
-    pctrllayout->addWidget( &m_pb_send );
+    //QHBoxLayout *pctrllayout = new QHBoxLayout();
+
+    //pctrllayout->addWidget( &m_pb_send );
 
     ///////////////////////////////////////////////统一左栏///////////////////////////////////////////////////
 
     QVBoxLayout *pleftlayout = new QVBoxLayout();
     pleftlayout->addLayout( psvlayout );
     pleftlayout->addLayout( pprolayout );
-    pleftlayout->addLayout( pctrllayout );
+    //pleftlayout->addLayout( pctrllayout );
     pleftlayout->addWidget( &m_te_input );
 
     ///////////////////////////////////////////////左右整合///////////////////////////////////////////////////
@@ -85,16 +90,32 @@ MainWindow::MainWindow(QWidget *parent)
     CNet *connector = m_player.get_connector();
     connect( connector,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
+    connect( &m_player,SIGNAL(sig_package(QString,int,int,QString)),this,SLOT(on_package(QString,int,int,QString)) );
 
     m_te_output.setReadOnly( true );
+    m_te_output.setLineWrapMode(QTextEdit::NoWrap);
     m_cb_code.setEditable( true );
     m_cb_msg.setEditable( true );
+
+    //菜单
+    m_output_clear = new QAction("clear",this);
+    m_te_output.setContextMenuPolicy(Qt::CustomContextMenu);
+
+    m_output_menu = m_te_output.createStandardContextMenu();
+    m_output_menu->addAction( m_output_clear );
+
+    connect( m_output_clear,SIGNAL(triggered()),this,SLOT(clear_output()) );
+
+    connect( &m_te_output,SIGNAL(customContextMenuRequested(const QPoint&)),
+                this,SLOT(showContextMenu(const QPoint&)));
 
     set_status( "ready",CL_GREEN,0 );
 
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
     on_import_proto_files();
-    on_parse_lua_config();
+    on_parse_lua_config(false);
+
+    read_setting();
 }
 
 MainWindow::~MainWindow()
@@ -168,37 +189,18 @@ void MainWindow::on_send()
 
 void MainWindow::on_package(const QString msg_name,int code,int err,const QString str)
 {
-    QFont font = m_te_output.currentFont();
-    QFontMetrics fm(font);
     QString str_info = QString("MSG:%1 CODE:%2 ERR:%3").arg(msg_name).arg(code).arg(err);
 
-    int info_len = fm.width( str_info ); //得到字符串像素长度
-    int width = m_te_output.width();     //输出框像素长度
-    int prefix_len = fm.width(">");      //前缀像素长度
-    int sufix_len  = fm.width("<");      //后缀像素长度
 
-    int prefix_cnt = (width - info_len)/prefix_len;
-    int sufix_cnt  = width/sufix_len;
 
-    int cnt = prefix_cnt/2;
-    while ( cnt > 0)
-    {
-        m_te_output.append( ">" );
-        cnt --;
-    }
-    m_te_output.append(str_info);
-    cnt = prefix_cnt/2;
-    while ( cnt > 0)
-    {
-        m_te_output.append( ">" );
-        cnt --;
-    }
 
-    while (sufix_cnt > 0)
-    {
-        m_te_output.append( "<" );
-        sufix_cnt --;
-    }
+    QString tmp = ">>>>>>>>>>";
+
+    tmp.append(str_info);
+    tmp.append("<<<<<<<<<<");
+
+    m_te_output.append(tmp);
+    m_te_output.append(str);
 }
 
 void MainWindow::on_import_proto_files()
@@ -222,10 +224,13 @@ void MainWindow::on_import_proto_files()
     m_te_output.setTextColor( QColor("black") );
 }
 
-void MainWindow::on_parse_lua_config()
+void MainWindow::on_parse_lua_config( bool is_connect )
 {
-    //disconnect( &m_cb_code,SIGNAL(currentIndexChanged(int)),this,SLOT(on_code_index_change(int)) );
-    //disconnect( &m_cb_msg,SIGNAL(currentIndexChanged(int)),this,SLOT(on_msg_index_change(int)) );
+    if ( is_connect )
+    {
+        disconnect( &m_cb_code,SIGNAL(currentIndexChanged(int)),this,SLOT(on_code_index_change(int)) );
+        disconnect( &m_cb_msg,SIGNAL(currentIndexChanged(int)),this,SLOT(on_msg_index_change(int)) );
+    }
 
     m_cb_code.clear();
     m_cb_msg.clear();
@@ -273,4 +278,44 @@ void MainWindow::on_msg_index_change(const QString &text)
     m_cb_code.setCurrentIndex(index);
 
     m_te_input.setText( CProtoc::instance()->get_msg_example_str(text) );
+}
+
+void MainWindow::read_setting()
+{
+    QSettings rsetting( "setting.ini",QSettings::IniFormat );
+    QString ip = rsetting.value( "IP","192.168.0.23" ).toString();
+    QString port = rsetting.value( "PORT","4113" ).toString();
+
+    m_le_ip.setText( ip );
+    m_le_port.setText( port );
+}
+
+void MainWindow::write_setting()
+{
+    QSettings wsetting( "setting.ini",QSettings::IniFormat );
+
+    QString ip = m_le_ip.text();
+    QString port = m_le_port.text();
+
+    if ( !ip.isEmpty() )
+        wsetting.setValue( "IP",ip );
+
+    if ( !port.isEmpty() )
+        wsetting.setValue( "PORT",port );
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    write_setting();
+    event->accept();
+}
+
+void MainWindow::clear_output()
+{
+    m_te_output.clear();
+}
+
+void MainWindow::showContextMenu(const QPoint &pt)
+{
+    m_output_menu->exec(m_te_output.mapToGlobal(pt));
 }

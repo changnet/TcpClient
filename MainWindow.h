@@ -7,6 +7,8 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QTextEdit>
+#include <QAction>
+#include <QMenu>
 
 #include "CPlayer.h"
 #include "color.h"
@@ -26,13 +28,21 @@ public slots:
     void on_disconnect();
     void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
     void on_import_proto_files();
-    void on_parse_lua_config();
+    void on_parse_lua_config(bool is_connect);
 
     void on_code_index_change(const QString &text);
     void on_msg_index_change(const QString &text);
 
+    void clear_output();
+
+    void showContextMenu(const QPoint &pt);
+
 private:
     void set_status(const QString &st, Color color = CL_BLACK , int timeout = 5000 );
+    void write_setting();
+    void read_setting();
+
+    void closeEvent(QCloseEvent *event);
 
 private:
     QLineEdit m_le_ip;
@@ -42,7 +52,6 @@ private:
 
     QComboBox m_cb_code;
     QComboBox m_cb_msg;
-    QPushButton m_pb_reload;
 
     QTextEdit m_te_input;
     QTextEdit m_te_output;
@@ -50,6 +59,9 @@ private:
     QPushButton m_pb_send;
 
     CPlayer m_player;
+
+    QMenu *m_output_menu;
+    QAction *m_output_clear;
 };
 
 #endif // MAINWINDOW_H

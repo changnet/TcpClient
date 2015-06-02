@@ -1,4 +1,6 @@
 #include "CConfig.h"
+#include <QFile>
+#include <QDebug>
 
 CConfig *CConfig::m_config = NULL;
 
@@ -54,6 +56,8 @@ bool CConfig::parse_lua_config()
     m_code_to_msg[20002] = "CCreateRole";
     m_code_to_msg[25001] = "CStartGame";
 
+    load_lua_cmd();
+
     return true;
 }
 
@@ -83,4 +87,28 @@ const QString &CConfig::get_msg(int code)
 const QMap<int,QString> &CConfig::get_code_msg_list()
 {
     return m_code_to_msg;
+}
+
+/**
+ * @brief CConfig::load_lua_cmd
+ * @return
+ * 简单取巧解析出命令字
+ */
+bool CConfig::load_lua_cmd()
+{
+    QFile file( "external_cmd.lua" );
+
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        return false;
+    }
+
+    int comments = 0;
+    while(!file.atEnd())
+    {
+        char ch;
+        file.read( &ch,1 );
+
+        qDebug()<< ch;
+    }
 }
