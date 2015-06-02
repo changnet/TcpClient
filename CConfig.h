@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QMap>
+#include <lua.hpp>
 
 class CConfig
 {
@@ -28,6 +29,9 @@ private:
     static CConfig *m_config;
 
     bool load_lua_cmd();
+    bool load_lua_file(const QString &file,lua_State *L);
+    bool get_proto_files(lua_State *L, const char *func );
+    bool get_msgs( lua_State *L,const char *func );
 };
 
 #endif // CCONFIG_H

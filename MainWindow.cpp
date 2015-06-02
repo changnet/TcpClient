@@ -112,8 +112,8 @@ MainWindow::MainWindow(QWidget *parent)
     set_status( "ready",CL_GREEN,0 );
 
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
+    on_parse_lua_config(false); //先配置后初始化protobuf
     on_import_proto_files();
-    on_parse_lua_config(false);
 
     read_setting();
 }

@@ -38,5 +38,10 @@ win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -lprotobuf
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -lprotobuf
 else:unix:LIBS += -lprotobuf
 
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/ -llua
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/ -llua
+else:unix: LIBS += -L$$PWD/lib/ -llua
+
 INCLUDEPATH += $$PWD/include
 DEPENDPATH += $$PWD/include
+
