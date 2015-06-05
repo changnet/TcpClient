@@ -1,12 +1,12 @@
 #include "CConfig.h"
 #include <QFile>
+#include <QSettings>
 #include <QDebug>
 
 CConfig *CConfig::m_config = NULL;
 
 CConfig::CConfig()
 {
-    //TODO:test data
     m_proto_source = ".";
 }
 
@@ -49,14 +49,7 @@ bool CConfig::parse_lua_config()
 {
     m_code_to_msg.clear();
 
-    m_code_to_msg[20001] = "CLogin";
-    m_code_to_msg[40001] = "SLogin";
-    m_code_to_msg[20002] = "CCreateRole";
-    m_code_to_msg[25001] = "CStartGame";
-
-    load_lua_cmd();
-
-    return true;
+    return load_lua_cmd();
 }
 
 int CConfig::get_code(const QString &msg)
@@ -74,7 +67,7 @@ int CConfig::get_code(const QString &msg)
     return 0;
 }
 
-const QString &CConfig::get_msg(int code)
+const QString CConfig::get_msg(int code)
 {
     if ( m_code_to_msg.contains( code ) )
         return m_code_to_msg[code];
@@ -98,17 +91,24 @@ bool CConfig::load_lua_cmd()
     luaopen_base(L);
 
     //dofile错误返回非零
-    /*if ( luaL_dofile( L,"external_cmd.lua" ) ||
-         luaL_dofile( L,"pb_files_find.lua" ) )
-    {
-        const char *err = lua_tostring(L,-1);
-        qDebug() << err;
-        lua_close(L);
-        return false;
-    }
+    //if ( luaL_dofile( L,"external_cmd.lua" ) ||
+    //     luaL_dofile( L,"pb_files_find.lua" ) )
+    //{
+    //    const char *err = lua_tostring(L,-1);
+    //    qDebug() << err;
+    //    lua_close(L);
+    //    return false;
+    //}
+    //
+    //lua_getglobal(L,"CMD_TO_PBFILED");
 
-    lua_getglobal(L,"CMD_TO_PBFILED");
-*/
+    QSettings rsetting( "setting.ini",QSettings::IniFormat );
+
+    m_proto_source = rsetting.value( "PB_DIR","." ).toString();
+    QString pb_files = rsetting.value( "PB_FILES","pb_files_find.lua" ).toString();
+    QString external_cmd = rsetting.value( "EXTERNAL_CMD","external_cmd.lua" ).toString();
+    QString internal_cmd = rsetting.value( "INTERNAL_CMD","internal_cmd.lua" ).toString();
+
     //手动补齐依赖
     const char *pb_path = "PB_PATH = \"\"";
     if ( luaL_loadbuffer(L,pb_path,strlen(pb_path),"PB_PATH") ||
@@ -117,20 +117,20 @@ bool CConfig::load_lua_cmd()
         return false;
     }
 
-    if ( !load_lua_file( "external_cmd.lua",L )
-         || !load_lua_file( "internal_cmd.lua",L )
-         || !load_lua_file( "pb_files_find.lua",L ) )
+    if ( !load_lua_file( external_cmd,L )
+         || !load_lua_file( internal_cmd,L )
+         || !load_lua_file( pb_files,L ) )
     {
-        const char *err = lua_tostring(L,-1);
-        qDebug() << err;
+        lua_close(L);
+
+        return false;
     }
 
-    get_proto_files( L,"get_pb_files" );
-    get_msgs( L,"get_pb_filed" );
+    bool ret = get_proto_files( L,"get_pb_files" ) && get_msgs( L,"get_pb_filed" );
 
     lua_close(L);
 
-    return true;
+    return ret;
 }
 
 bool CConfig::load_lua_file(const QString &file , lua_State *L)
@@ -138,6 +138,7 @@ bool CConfig::load_lua_file(const QString &file , lua_State *L)
     QFile file_obj( file );
     if ( !file_obj.open(QIODevice::ReadOnly | QIODevice::Text) )
     {
+        m_last_err = QString("open file fail:%1").arg(file);
         return false;
     }
 
@@ -157,6 +158,7 @@ bool CConfig::load_lua_file(const QString &file , lua_State *L)
     if ( luaL_loadbuffer(L,byte_file.data(),byte_file.size(),byte_name.data()) ||
          lua_pcall(L, 0, 0, 0) )
     {
+        m_last_err = QString("%1").arg( lua_tostring(L,-1) );
         return false;
     }
 
@@ -178,11 +180,18 @@ lua_next() 这个函数的工作过程是：
 到了 table 中已经没有 key-value 对时，lua_next() 先弹出最后一个 key，然后发现已经没有数据了会返回 0，while 循环结束。
 所以这个 lua_next() 过程结束以后 table 就又位于栈顶了。
 */
+
 bool CConfig::get_proto_files(lua_State *L, const char *func)
 {
     m_proto_files.clear();
 
     lua_getglobal( L,func );
+    if ( !lua_isfunction( L,-1 ) )
+    {
+        m_last_err = QString("%1 not a lua function").arg(func);
+        return false;
+    }
+
     lua_pcall( L,0,1,0 );
 
     int index = lua_gettop(L);                    //此时栈顶是table
@@ -208,15 +217,18 @@ bool CConfig::get_msgs(lua_State *L, const char *func)
     m_code_to_msg.clear();
 
     lua_getglobal( L,func );
+    if ( !lua_isfunction( L,-1 ) )
+    {
+        m_last_err = QString("%1 not a lua function").arg(func);
+        return false;
+    }
+
     lua_pcall( L,0,1,0 );
 
     int index = lua_gettop(L);                    //此时栈顶是table
     lua_pushnil(L);                               //压入初始key
     while(lua_next(L, index))                     //
     {
-        //qDebug() << lua_tostring(L, -1);          // value在-1
-        //qDebug() << lua_tonumber(L, -2);          // key在-2
-
         QString msg_name(lua_tostring(L, -1));
         int code = lua_tonumber( L,-2 );
         m_code_to_msg[code] = msg_name;
@@ -226,4 +238,9 @@ bool CConfig::get_msgs(lua_State *L, const char *func)
     lua_pop(L, 1);
 
     return true;
+}
+
+const QString &CConfig::get_last_err()
+{
+    return m_last_err;
 }

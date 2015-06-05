@@ -6,9 +6,9 @@
 
 QT       += core gui
 QT       += network
-CONFIG   += warn_off
+CONFIG   += warn_on
 
-QMAKE_CXXFLAGS += -std=c++0x -O0
+QMAKE_CXXFLAGS += -std=c++0x
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

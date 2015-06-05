@@ -237,7 +237,11 @@ void MainWindow::on_parse_lua_config( bool is_connect )
 
     CConfig *config = CConfig::instance();
 
-    config->parse_lua_config();
+    if ( !config->parse_lua_config() )
+    {
+        set_status( config->get_last_err(),CL_RED,6000 );
+        return;
+    }
 
     const QMap<int,QString> &code_msg_list = config->get_code_msg_list();
     QMap<int,QString>::const_iterator itr = code_msg_list.constBegin();
