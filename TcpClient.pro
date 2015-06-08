@@ -6,7 +6,7 @@
 
 QT       += core gui
 QT       += network
-CONFIG   += warn_on
+CONFIG   += warn_off
 
 QMAKE_CXXFLAGS += -std=c++0x
 

@@ -11,6 +11,7 @@
 #include <QFont>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -55,16 +56,32 @@ MainWindow::MainWindow(QWidget *parent)
     pprolayout->addWidget( &m_pb_send,0,4 );
 
     ////////////////////////////////////////////////控制栏///////////////////////////////////////////////
-    //QHBoxLayout *pctrllayout = new QHBoxLayout();
+    QGridLayout *pctrllayout = new QGridLayout();
 
-    //pctrllayout->addWidget( &m_pb_send );
+    pctrllayout->setColumnStretch(0,1);
+    pctrllayout->setColumnStretch(1,1);
+    pctrllayout->setColumnStretch(2,1);
+    pctrllayout->setColumnStretch(3,1);
+    pctrllayout->setColumnStretch(4,2);
+
+    m_pb_sk1.setText( "SK-1" );
+    m_pb_sk2.setText( "SK-2" );
+    m_pb_sk3.setText( "SK-3" );
+    m_pb_sk4.setText( "SK-4" );
+    m_cb_history.view()->setMinimumHeight( 60 );
+
+    pctrllayout->addWidget( &m_pb_sk1,0,0 );
+    pctrllayout->addWidget( &m_pb_sk2,0,1 );
+    pctrllayout->addWidget( &m_pb_sk3,0,2 );
+    pctrllayout->addWidget( &m_pb_sk4,0,3 );
+    pctrllayout->addWidget( &m_cb_history,0,4 );
 
     ///////////////////////////////////////////////统一左栏///////////////////////////////////////////////////
 
     QVBoxLayout *pleftlayout = new QVBoxLayout();
     pleftlayout->addLayout( psvlayout );
     pleftlayout->addLayout( pprolayout );
-    //pleftlayout->addLayout( pctrllayout );
+    pleftlayout->addLayout( pctrllayout );
     pleftlayout->addWidget( &m_te_input );
 
     ///////////////////////////////////////////////左右整合///////////////////////////////////////////////////
@@ -109,13 +126,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_te_output,SIGNAL(customContextMenuRequested(const QPoint&)),
                 this,SLOT(showContextMenu(const QPoint&)));
 
-    set_status( "ready",CL_GREEN,0 );
 
+    connect( &m_pb_sk1,SIGNAL(pressed()),this,SLOT(sk1_pressed()) );
+    connect( &m_pb_sk1,SIGNAL(released()),this,SLOT(sk1_released()) );
+    connect( &m_pb_sk2,SIGNAL(pressed()),this,SLOT(sk2_pressed()) );
+    connect( &m_pb_sk2,SIGNAL(released()),this,SLOT(sk2_released()) );
+    connect( &m_pb_sk3,SIGNAL(pressed()),this,SLOT(sk3_pressed()) );
+    connect( &m_pb_sk3,SIGNAL(released()),this,SLOT(sk3_released()) );
+    connect( &m_pb_sk4,SIGNAL(pressed()),this,SLOT(sk4_pressed()) );
+    connect( &m_pb_sk4,SIGNAL(released()),this,SLOT(sk4_released()) );
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
     on_parse_lua_config(false); //先配置后初始化protobuf
     on_import_proto_files();
 
     read_setting();
+
+    set_status( "ready",CL_GREEN,0 );
 }
 
 MainWindow::~MainWindow()
@@ -322,4 +348,63 @@ void MainWindow::clear_output()
 void MainWindow::showContextMenu(const QPoint &pt)
 {
     m_output_menu->exec(m_te_output.mapToGlobal(pt));
+}
+
+void MainWindow::sk1_pressed()
+{
+    sk_pressed( 1 );
+}
+
+void MainWindow::sk1_released()
+{
+    sk_released( 1 );
+}
+
+void MainWindow::sk2_pressed()
+{
+    sk_pressed( 2 );
+}
+
+void MainWindow::sk2_released()
+{
+    sk_released( 2 );
+}
+
+void MainWindow::sk3_pressed()
+{
+    sk_pressed( 3 );
+}
+
+void MainWindow::sk3_released()
+{
+    sk_released( 3 );
+}
+
+void MainWindow::sk4_pressed()
+{
+    sk_pressed( 4 );
+}
+
+void MainWindow::sk4_released()
+{
+    sk_released( 4 );
+}
+
+
+void MainWindow::sk_pressed(int index)
+{
+    m_sk_index = index;
+    m_sk_utc = QDateTime::currentMSecsSinceEpoch();
+}
+
+void MainWindow::sk_released(int index)
+{
+    if ( m_sk_index != index )
+        return;
+
+    qint64 m_sk_current = QDateTime::currentMSecsSinceEpoch();
+    if ( m_sk_current - m_sk_utc > 3 ) //长按3S以上
+    {
+        return;
+    }
 }

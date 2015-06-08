@@ -13,6 +13,13 @@
 #include "CPlayer.h"
 #include "color.h"
 
+struct SKey  /* shortcut key */
+{
+    int code;
+    QString msg;
+    QString content;
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -37,6 +44,15 @@ public slots:
 
     void showContextMenu(const QPoint &pt);
 
+    void sk1_pressed();
+    void sk1_released();
+    void sk2_pressed();
+    void sk2_released();
+    void sk3_pressed();
+    void sk3_released();
+    void sk4_pressed();
+    void sk4_released();
+
 private:
     void set_status(const QString &st, Color color = CL_BLACK , int timeout = 5000 );
     void write_setting();
@@ -44,6 +60,8 @@ private:
 
     void closeEvent(QCloseEvent *event);
 
+    void sk_pressed( int index );
+    void sk_released( int index );
 private:
     QLineEdit m_le_ip;
     QLineEdit m_le_port;
@@ -62,6 +80,18 @@ private:
 
     QMenu *m_output_menu;
     QAction *m_output_clear;
+
+    QPushButton m_pb_sk1;
+    QPushButton m_pb_sk2;
+    QPushButton m_pb_sk3;
+    QPushButton m_pb_sk4;
+
+    QComboBox m_cb_history;
+
+    QMap<int,struct SKey> m_sk;
+
+    int m_sk_index;
+    qint64 m_sk_utc;
 };
 
 #endif // MAINWINDOW_H
