@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     pctrllayout->setColumnStretch(1,1);
     pctrllayout->setColumnStretch(2,1);
     pctrllayout->setColumnStretch(3,1);
-    pctrllayout->setColumnStretch(4,2);
+    pctrllayout->setColumnStretch(4,3);
 
     m_pb_sk1.setText( "SK-1" );
     m_pb_sk2.setText( "SK-2" );
@@ -135,6 +135,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_pb_sk3,SIGNAL(released()),this,SLOT(sk3_released()) );
     connect( &m_pb_sk4,SIGNAL(pressed()),this,SLOT(sk4_pressed()) );
     connect( &m_pb_sk4,SIGNAL(released()),this,SLOT(sk4_released()) );
+
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
     on_parse_lua_config(false); //先配置后初始化protobuf
     on_import_proto_files();
@@ -210,7 +211,9 @@ void MainWindow::on_send()
         return;
     }
 
-    m_player.send_package( str_code.toInt(),str_msg_name,str_send );
+    bool ret = m_player.send_package( str_code.toInt(),str_msg_name,str_send );
+    if ( ret )
+        set_status( "send ...",CL_GREEN );
 }
 
 void MainWindow::on_package(const QString msg_name,int code,int err,const QString str)
@@ -318,6 +321,19 @@ void MainWindow::read_setting()
 
     m_le_ip.setText( ip );
     m_le_port.setText( port );
+
+    //尝试读取4个快捷键
+    for ( int i = 1;i < 5;i ++ ) //one base
+    {
+        int code = rsetting.value( QString("SK/%1/CODE").arg(i),0 ).toInt();
+        if ( !code )
+            continue;
+
+        QString msg = rsetting.value( QString("SK/%1/MSG").arg(i),"" ).toString();
+        QString content = rsetting.value( QString("SK/%1/CONTENT").arg(i),"" ).toString();
+
+        sk_update( code,msg,content,i );
+    }
 }
 
 void MainWindow::write_setting()
@@ -332,6 +348,19 @@ void MainWindow::write_setting()
 
     if ( !port.isEmpty() )
         wsetting.setValue( "PORT",port );
+
+    //4个快捷键
+
+    QMap<int,SKey>::const_iterator itr = m_sk.constBegin();
+    while( itr != m_sk.constEnd() )
+    {
+        int key  = itr.key();
+        wsetting.setValue( QString("SK/%1/CODE").arg(key),itr->code );
+        wsetting.setValue( QString("SK/%1/MSG").arg(key),itr->msg );
+        wsetting.setValue( QString("SK/%1/CONTENT").arg(key),itr->content );
+
+        itr ++;
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -397,14 +426,99 @@ void MainWindow::sk_pressed(int index)
     m_sk_utc = QDateTime::currentMSecsSinceEpoch();
 }
 
+/**
+ * @brief MainWindow::sk_released
+ * @param index
+ * 发送(单击)
+ * 录制(空白时单击)
+ * 删除(长按3S以上)
+ */
 void MainWindow::sk_released(int index)
 {
     if ( m_sk_index != index )
         return;
 
     qint64 m_sk_current = QDateTime::currentMSecsSinceEpoch();
-    if ( m_sk_current - m_sk_utc > 3 ) //长按3S以上
+
+    if ( m_sk_current - m_sk_utc > 3000 ) //长按3S以上
     {
+        if ( m_sk.contains(index) )
+        {
+            m_sk.remove(index);
+            sk_reset( index );
+            return;
+        }
+    }
+
+    //发送
+    if ( m_sk.contains(index) )
+    {
+        sk_send( index );
         return;
     }
+
+    //录制
+    QString code = m_cb_code.currentText();
+    QString msg  = m_cb_msg.currentText();
+    if ( code.isEmpty() || msg.isEmpty() )
+        return;
+
+    sk_update( code.toInt(),msg,m_te_input.toPlainText(),index );
+}
+
+void MainWindow::sk_reset(int index)
+{
+    /* 由于为了方便，没有重写QPushButton，只能采用这种查找方式 */
+    /* 将它们放到一个数组，connect这些也不好处理 */
+    QPushButton *button = NULL;
+    switch (index)
+    {
+    case 1 : button = &m_pb_sk1;break;
+    case 2 : button = &m_pb_sk2;break;
+    case 3 : button = &m_pb_sk3;break;
+    case 4 : button = &m_pb_sk4;break;
+    }
+
+    if ( !button )
+        return;
+
+    button->setToolTip( "" );
+    button->setStyleSheet( "color:black" );
+}
+
+void MainWindow::sk_update(int code, const QString &msg, const QString &content, int index)
+{
+    QPushButton *button = NULL;
+    switch (index)
+    {
+    case 1 : button = &m_pb_sk1;break;
+    case 2 : button = &m_pb_sk2;break;
+    case 3 : button = &m_pb_sk3;break;
+    case 4 : button = &m_pb_sk4;break;
+    }
+
+    if ( !button )
+        return;
+
+    SKey _sk;
+    _sk.code = code;
+    _sk.msg = msg;
+    _sk.content = content;
+
+    m_sk[index] = _sk;
+
+    QString tips = QString( "CODE:%1\nMSG:%2\n%3").arg(code).arg(msg).arg(content);
+    button->setStyleSheet( "color:green" );
+    button->setToolTip( tips );
+}
+
+void MainWindow::sk_send(int index)
+{
+    if ( !m_sk.contains(index) )
+        return;
+
+    SKey &_sk = m_sk[index];
+    bool ret = m_player.send_package( _sk.code,_sk.msg,_sk.content );
+    if ( ret )
+        set_status( "sk send ...",CL_GREEN );
 }

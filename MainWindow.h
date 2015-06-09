@@ -62,6 +62,9 @@ private:
 
     void sk_pressed( int index );
     void sk_released( int index );
+    void sk_reset( int index );
+    void sk_send( int index );
+    void sk_update( int code,const QString &msg,const QString &content,int index);
 private:
     QLineEdit m_le_ip;
     QLineEdit m_le_port;
