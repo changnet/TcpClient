@@ -211,7 +211,7 @@ bool CProtoc::parse_package(const QString &msg_name, const char *buf, int len)
     bool ret = pmsg->ParseFromArray( buf,len );
     if ( ret )
     {
-        m_package_str = QString( pmsg->DebugString().c_str() );
+        m_package_str = QString(pmsg->Utf8DebugString().c_str());
     }
 
     delete pmsg;
