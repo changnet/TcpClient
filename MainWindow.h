@@ -34,13 +34,14 @@ public slots:
     void on_connect();
     void on_disconnect();
     void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
-    void on_import_proto_files();
-    void on_parse_lua_config(bool is_connect);
 
     void on_code_index_change(const QString &text);
     void on_msg_index_change(const QString &text);
+    void on_history_index_change(int index);
 
     void clear_output();
+    void clear_history();
+    void reset_config();
 
     void showContextMenu(const QPoint &pt);
 
@@ -65,6 +66,10 @@ private:
     void sk_reset( int index );
     void sk_send( int index );
     void sk_update( int code,const QString &msg,const QString &content,int index);
+    void add_history( int code,const QString &msg,const QString &content );
+    void update_history();
+    void on_import_proto_files();
+    void on_parse_lua_config(bool is_connect);
 private:
     QLineEdit m_le_ip;
     QLineEdit m_le_port;
@@ -83,6 +88,8 @@ private:
 
     QMenu *m_output_menu;
     QAction *m_output_clear;
+    QAction *m_history_clear;
+    QAction *m_config_reset;
 
     QPushButton m_pb_sk1;
     QPushButton m_pb_sk2;
@@ -92,6 +99,7 @@ private:
     QComboBox m_cb_history;
 
     QMap<int,struct SKey> m_sk;
+    QList<struct SKey> m_history;
 
     int m_sk_index;
     qint64 m_sk_utc;

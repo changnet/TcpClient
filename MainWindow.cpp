@@ -12,6 +12,7 @@
 #include <QSettings>
 #include <QCloseEvent>
 #include <QDateTime>
+#include <QMenuBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -114,7 +115,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_cb_code.setEditable( true );
     m_cb_msg.setEditable( true );
 
-    //菜单
+    //右键菜单
     m_output_clear = new QAction("clear",this);
     m_te_output.setContextMenuPolicy(Qt::CustomContextMenu);
 
@@ -126,6 +127,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_te_output,SIGNAL(customContextMenuRequested(const QPoint&)),
                 this,SLOT(showContextMenu(const QPoint&)));
 
+    //菜单栏
+    QMenuBar *menu_bar = menuBar();
+    m_history_clear = new QAction( "clear history",menu_bar );
+    m_config_reset  = new QAction( "reset config",menu_bar );
+    menu_bar->addAction( m_history_clear );
+    menu_bar->addAction( m_config_reset );
+    connect( m_history_clear,SIGNAL(triggered()),this,SLOT(clear_history()) );
+    connect( m_config_reset,SIGNAL(triggered()),this,SLOT(reset_config()) );
 
     connect( &m_pb_sk1,SIGNAL(pressed()),this,SLOT(sk1_pressed()) );
     connect( &m_pb_sk1,SIGNAL(released()),this,SLOT(sk1_released()) );
@@ -135,6 +144,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_pb_sk3,SIGNAL(released()),this,SLOT(sk3_released()) );
     connect( &m_pb_sk4,SIGNAL(pressed()),this,SLOT(sk4_pressed()) );
     connect( &m_pb_sk4,SIGNAL(released()),this,SLOT(sk4_released()) );
+
+    connect( &m_cb_history,SIGNAL(currentIndexChanged(int)),this,SLOT(on_history_index_change(int)) );
 
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
     on_parse_lua_config(false); //先配置后初始化protobuf
@@ -211,20 +222,19 @@ void MainWindow::on_send()
         return;
     }
 
-    bool ret = m_player.send_package( str_code.toInt(),str_msg_name,str_send );
+    int code = str_code.toInt();
+    bool ret = m_player.send_package( code,str_msg_name,str_send );
     if ( ret )
         set_status( "send ...",CL_GREEN );
+
+    add_history( code,str_msg_name,str_send );
 }
 
 void MainWindow::on_package(const QString msg_name,int code,int err,const QString str)
 {
     QString str_info = QString("MSG:%1 CODE:%2 ERR:%3").arg(msg_name).arg(code).arg(err);
 
-
-
-
     QString tmp = ">>>>>>>>>>";
-
     tmp.append(str_info);
     tmp.append("<<<<<<<<<<");
 
@@ -334,6 +344,24 @@ void MainWindow::read_setting()
 
         sk_update( code,msg,content,i );
     }
+
+    int cnt = 0;
+    struct SKey sk;
+    m_history.clear();
+
+    while ( true )
+    {
+        sk.code = rsetting.value( QString("HISTORY/%1/CODE").arg(cnt),0 ).toInt();
+        if ( !code )
+            break;
+
+        sk.msg = rsetting.value( QString("HISTORY/%1/MSG").arg(cnt),"" ).toString();
+        sk.content = rsetting.value( QString("HISTORY/%1/CONTENT").arg(cnt),"" ).toString();
+
+        m_history.pop_back( sk );
+        cnt ++;
+    }
+    update_history();
 }
 
 void MainWindow::write_setting()
@@ -360,6 +388,14 @@ void MainWindow::write_setting()
         wsetting.setValue( QString("SK/%1/CONTENT").arg(key),itr->content );
 
         itr ++;
+    }
+
+    for ( int i = 0;i < m_history.length();i ++ )
+    {
+        struct SKey &sk = m_history.at( i );
+        wsetting.setValue( QString("HISTORY/%1/CODE").arg(i),sk.code );
+        wsetting.setValue( QString("HISTORY/%1/MSG").arg(i),sk.msg );
+        wsetting.setValue( QString("HISTORY/%1/CONTENT").arg(i),sk.content );
     }
 }
 
@@ -521,4 +557,75 @@ void MainWindow::sk_send(int index)
     bool ret = m_player.send_package( _sk.code,_sk.msg,_sk.content );
     if ( ret )
         set_status( "sk send ...",CL_GREEN );
+}
+
+void MainWindow::add_history(int code, const QString &msg, const QString &content)
+{
+    QList<struct SKey>::const_iterator itr = m_history.constBegin();
+    while ( itr != m_history.constEnd() )
+    {
+        if ( itr->code == code && 0 == QString::compare(itr->msg,msg)
+             && 0 == QString::compare(itr->content,content) )
+            return;
+
+        itr ++;
+    }
+
+    const int max_history = 10;
+    while ( m_history.length() >= max_history )
+    {
+        m_history.pop_back();
+    }
+
+    struct SKey sk;
+    sk.code = code;
+    sk.msg = msg;
+    sk.content = content;
+
+    m_history.push_front( sk );
+    update_history();
+}
+
+void MainWindow::update_history()
+{
+    //先断开，不然addItem会触发
+    disconnect( &m_cb_history,SIGNAL(currentIndexChanged(int)),this,SLOT(on_history_index_change(int)) );
+
+    m_cb_history.clear();
+
+    QList<struct SKey>::const_iterator itr = m_history.constBegin();
+    while ( itr != m_history.constEnd() )
+    {
+        m_cb_history.addItem( itr->msg );
+
+        itr ++;
+    }
+
+    connect( &m_cb_history,SIGNAL(currentIndexChanged(int)),this,SLOT(on_history_index_change(int)) );
+}
+
+void MainWindow::on_history_index_change(int index)
+{
+    if ( index < 0 || index >= m_history.length() )
+        return;
+
+    struct SKey &sk = m_history.at(index);
+    m_cb_code.setCurrentText( QString("%1").arg(sk.code) );
+    m_cb_msg.setCurrentText( sk.msg );
+    m_te_input.setText( sk.content );
+}
+
+void MainWindow::clear_history()
+{
+    m_history.clear();
+    m_cb_history.clear();
+}
+
+void MainWindow::reset_config()
+{
+    CProtoc::uninstance();
+    CConfig::uninstance();
+
+    on_parse_lua_config(true); //先配置后初始化protobuf
+    on_import_proto_files();
 }
