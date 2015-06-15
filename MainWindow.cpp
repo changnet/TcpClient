@@ -110,6 +110,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
     connect( &m_player,SIGNAL(sig_package(QString,int,int,QString)),this,SLOT(on_package(QString,int,int,QString)) );
 
+    connect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
+    connect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
+
     m_te_output.setReadOnly( true );
     m_te_output.setLineWrapMode(QTextEdit::NoWrap);
     m_cb_code.setEditable( true );
@@ -148,12 +151,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_cb_history,SIGNAL(currentIndexChanged(int)),this,SLOT(on_history_index_change(int)) );
 
     //////////////////////////////////////////////初始化其他组件/////////////////////////////////////////////////
-    on_parse_lua_config(false); //先配置后初始化protobuf
+    set_status( "ready",CL_GREEN,0 );
+
+    on_parse_lua_config(); //先配置后初始化protobuf
     on_import_proto_files();
 
-    read_setting();
-
-    set_status( "ready",CL_GREEN,0 );
+    read_setting();  
 }
 
 MainWindow::~MainWindow()
@@ -263,13 +266,11 @@ void MainWindow::on_import_proto_files()
     m_te_output.setTextColor( QColor("black") );
 }
 
-void MainWindow::on_parse_lua_config( bool is_connect )
+void MainWindow::on_parse_lua_config( )
 {
-    if ( is_connect )
-    {
-        disconnect( &m_cb_code,SIGNAL(currentIndexChanged(int)),this,SLOT(on_code_index_change(int)) );
-        disconnect( &m_cb_msg,SIGNAL(currentIndexChanged(int)),this,SLOT(on_msg_index_change(int)) );
-    }
+    //必须在最前面，clear会触发currentTextChanged，引发数组越界
+    disconnect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
+    disconnect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
 
     m_cb_code.clear();
     m_cb_msg.clear();
@@ -303,7 +304,7 @@ void MainWindow::on_parse_lua_config( bool is_connect )
 void MainWindow::on_code_index_change(const QString &text)
 {
     Q_UNUSED(text);
-
+    qDebug() << "on_code_index_change";
     //插入数据时，会触发，这时另一个不一定有相同的索引
     int index = m_cb_code.currentIndex();
     if ( m_cb_msg.count() - 1 < index )
@@ -317,7 +318,7 @@ void MainWindow::on_msg_index_change(const QString &text)
     int index = m_cb_msg.currentIndex();
     if ( m_cb_code.count() - 1 < index )
         return;
-
+    qDebug() << "on_msg_index_change";
     m_cb_code.setCurrentIndex(index);
 
     m_te_input.setText( CProtoc::instance()->get_msg_example_str(text) );
@@ -352,13 +353,13 @@ void MainWindow::read_setting()
     while ( true )
     {
         sk.code = rsetting.value( QString("HISTORY/%1/CODE").arg(cnt),0 ).toInt();
-        if ( !code )
+        if ( !sk.code )
             break;
 
         sk.msg = rsetting.value( QString("HISTORY/%1/MSG").arg(cnt),"" ).toString();
         sk.content = rsetting.value( QString("HISTORY/%1/CONTENT").arg(cnt),"" ).toString();
 
-        m_history.pop_back( sk );
+        m_history.push_back( sk );
         cnt ++;
     }
     update_history();
@@ -392,7 +393,7 @@ void MainWindow::write_setting()
 
     for ( int i = 0;i < m_history.length();i ++ )
     {
-        struct SKey &sk = m_history.at( i );
+        const struct SKey &sk = m_history.at( i );
         wsetting.setValue( QString("HISTORY/%1/CODE").arg(i),sk.code );
         wsetting.setValue( QString("HISTORY/%1/MSG").arg(i),sk.msg );
         wsetting.setValue( QString("HISTORY/%1/CONTENT").arg(i),sk.content );
@@ -609,7 +610,7 @@ void MainWindow::on_history_index_change(int index)
     if ( index < 0 || index >= m_history.length() )
         return;
 
-    struct SKey &sk = m_history.at(index);
+    const struct SKey &sk = m_history.at(index);
     m_cb_code.setCurrentText( QString("%1").arg(sk.code) );
     m_cb_msg.setCurrentText( sk.msg );
     m_te_input.setText( sk.content );
@@ -626,6 +627,6 @@ void MainWindow::reset_config()
     CProtoc::uninstance();
     CConfig::uninstance();
 
-    on_parse_lua_config(true); //先配置后初始化protobuf
+    on_parse_lua_config(); //先配置后初始化protobuf
     on_import_proto_files();
 }

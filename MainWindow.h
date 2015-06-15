@@ -69,7 +69,7 @@ private:
     void add_history( int code,const QString &msg,const QString &content );
     void update_history();
     void on_import_proto_files();
-    void on_parse_lua_config(bool is_connect);
+    void on_parse_lua_config();
 private:
     QLineEdit m_le_ip;
     QLineEdit m_le_port;

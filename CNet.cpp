@@ -1,7 +1,5 @@
 #include "CNet.h"
 
-#include <QDataStream>
-
 CNet::CNet(QObject *parent) :
     QTcpSocket(parent)
 {
@@ -147,4 +145,15 @@ bool CNet::parse_protocol()
     int len = phead - 8; //减去code err长度
 
     emit sig_protocol( code,err,data,len );
+}
+
+bool CNet::is_valid()
+{
+    //不能通过isWritable() isValid来判断
+    //正在连接这两个返回 true
+    //QNativeSocketEngine::write() was not called in QAbstractSocket::ConnectedState
+    if ( QTcpSocket::ConnectedState == state() )
+        return true;
+
+    return false;
 }

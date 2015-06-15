@@ -21,7 +21,7 @@ CNet *CPlayer::get_connector()
 
 bool CPlayer::send_package(const int code, const QString &msg_name, const QString &json)
 {
-    if ( !m_connector->isValid() || !m_connector->isWritable() )
+    if ( !m_connector->is_valid() )
     {
         emit sig_msg( "connect is not valid",CL_RED,6000 );
         return false;

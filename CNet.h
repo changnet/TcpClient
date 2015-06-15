@@ -13,6 +13,7 @@ public:
     explicit CNet(QObject *parent = 0);
     void connect_host(const QString &host, int port );
     void disconnect_host();
+    bool is_valid();
 
 private:
     CBuf       m_r_buf;

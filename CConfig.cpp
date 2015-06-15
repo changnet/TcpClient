@@ -106,7 +106,8 @@ bool CConfig::load_lua_cmd()
 
     m_proto_source = rsetting.value( "PB_DIR","." ).toString();
     QString pb_files = rsetting.value( "PB_FILES","pb_files_find.lua" ).toString();
-    QString external_cmd = rsetting.value( "EXTERNAL_CMD","external_cmd.lua" ).toString();
+    QString client_cmd = rsetting.value( "CLIENT_CMD","CLIENT_cmd.lua" ).toString();
+    QString server_cmd = rsetting.value( "SERVER_CMD","SERVER_cmd.lua" ).toString();
     QString internal_cmd = rsetting.value( "INTERNAL_CMD","internal_cmd.lua" ).toString();
 
     //手动补齐依赖
@@ -117,7 +118,8 @@ bool CConfig::load_lua_cmd()
         return false;
     }
 
-    if ( !load_lua_file( external_cmd,L )
+    if ( !load_lua_file( client_cmd,L )
+         || !load_lua_file( server_cmd,L )
          || !load_lua_file( internal_cmd,L )
          || !load_lua_file( pb_files,L ) )
     {
