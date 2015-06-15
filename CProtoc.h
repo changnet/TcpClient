@@ -52,7 +52,7 @@ private:
     static CProtoc *m_instance;
 
     google::protobuf::Message *get_msg(const QString &msg_name);
-    QString msg_example_str(google::protobuf::Message *msg, const QString &indent = "");
+    QString msg_example_str(google::protobuf::Message *msg, int indent = 0);
 
     void reset_proto();
 };

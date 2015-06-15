@@ -151,11 +151,14 @@ CProtoFileErrorCollector *CProtoc::get_error_collector()
     return m_err_collector;
 }
 
-QString CProtoc::msg_example_str(google::protobuf::Message *msg, const QString &indent)
+QString CProtoc::msg_example_str(google::protobuf::Message *msg, int indent)
 {
     if ( !msg )
         return "";
 
+    static QString str_indent = "    ";
+    QString field_indent = str_indent.repeated(indent);
+    QString bracket_indent = str_indent.repeated( indent - 1 );  //<= 0 return a ""
     QString str;
 
     const google::protobuf::Reflection *reflection = msg->GetReflection();
@@ -164,18 +167,23 @@ QString CProtoc::msg_example_str(google::protobuf::Message *msg, const QString &
     for ( int i = 0;i < field_count;i ++ )
     {
         const google::protobuf::FieldDescriptor *field = descriptor->field(i);
-        str = str % indent % QString("%1:\n").arg(field->name().c_str());
+        str = str % field_indent % QString("%1:\n").arg(field->name().c_str());
 
         if ( google::protobuf::FieldDescriptor::TYPE_MESSAGE == field->type())  //嵌套
         {
             //这里只是做样本字符串，也可以用get_msg来获取嵌套message
-            google::protobuf::Message *_msg = reflection->MutableMessage( msg,field );
-            str = str % msg_example_str( _msg,indent % "    " );
+            google::protobuf::Message *_msg = NULL;
+            if ( field->is_repeated() )
+                _msg = reflection->AddMessage( msg,field );
+            else
+                _msg = reflection->MutableMessage( msg,field );
+
+            str = str % msg_example_str( _msg,indent + 1 );
         }
     }
 
-    if ( !indent.isEmpty() ) //首层不需要{}，但嵌套需要
-        str = "{\n" % str % "}\n";
+    if ( indent )
+        str = bracket_indent % "{\n" % str % bracket_indent % "}\n";
 
     return str;
 }
