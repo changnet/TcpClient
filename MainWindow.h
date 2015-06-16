@@ -103,6 +103,7 @@ private:
 
     int m_sk_index;
     qint64 m_sk_utc;
+    quint8 m_proto_bit;
 };
 
 #endif // MAINWINDOW_H

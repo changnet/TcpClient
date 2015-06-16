@@ -14,6 +14,9 @@
 #include <QDateTime>
 #include <QMenuBar>
 
+#define PROTO_CODE_BIT  0x01
+#define PROTO_MSG_BIT   0x02
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -110,6 +113,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
     connect( &m_player,SIGNAL(sig_package(QString,int,int,QString)),this,SLOT(on_package(QString,int,int,QString)) );
 
+    m_proto_bit = 0;  //在m_cb_code m_cb_msg之前设置
     connect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
     connect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
 
@@ -268,10 +272,7 @@ void MainWindow::on_import_proto_files()
 
 void MainWindow::on_parse_lua_config( )
 {
-    //必须在最前面，clear会触发currentTextChanged，引发数组越界
-    disconnect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
-    disconnect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
-
+    m_proto_bit = 0;    //保证clear addItem 时不触发
     m_cb_code.clear();
     m_cb_msg.clear();
 
@@ -297,14 +298,18 @@ void MainWindow::on_parse_lua_config( )
     m_cb_msg.setCurrentText( "" );
     //虽然设置为空，但这时currentIndex都为0，即第一个
 
-    connect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
-    connect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
+    m_proto_bit = PROTO_CODE_BIT | PROTO_MSG_BIT ;//默认触发
 }
 
 void MainWindow::on_code_index_change(const QString &text)
 {
     Q_UNUSED(text);
-    qDebug() << "on_code_index_change";
+
+    if ( !(m_proto_bit & PROTO_CODE_BIT) )
+        return;
+
+    m_proto_bit |= PROTO_CODE_BIT;
+
     //插入数据时，会触发，这时另一个不一定有相同的索引
     int index = m_cb_code.currentIndex();
     if ( m_cb_msg.count() - 1 < index )
@@ -315,10 +320,17 @@ void MainWindow::on_code_index_change(const QString &text)
 
 void MainWindow::on_msg_index_change(const QString &text)
 {
+    Q_UNUSED(text);
+
+    if ( !(m_proto_bit & PROTO_MSG_BIT) )
+        return;
+
+    m_proto_bit |= PROTO_MSG_BIT;  //自动重新默认为触发
+
     int index = m_cb_msg.currentIndex();
     if ( m_cb_code.count() - 1 < index )
         return;
-    qDebug() << "on_msg_index_change";
+
     m_cb_code.setCurrentIndex(index);
 
     m_te_input.setText( CProtoc::instance()->get_msg_example_str(text) );
@@ -610,10 +622,13 @@ void MainWindow::on_history_index_change(int index)
     if ( index < 0 || index >= m_history.length() )
         return;
 
+    m_proto_bit = 0;       //停止触发
     const struct SKey &sk = m_history.at(index);
     m_cb_code.setCurrentText( QString("%1").arg(sk.code) );
     m_cb_msg.setCurrentText( sk.msg );
     m_te_input.setText( sk.content );
+
+    m_proto_bit = PROTO_CODE_BIT | PROTO_MSG_BIT ;//默认触发
 }
 
 void MainWindow::clear_history()
