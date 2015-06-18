@@ -111,7 +111,7 @@ MainWindow::MainWindow(QWidget *parent)
     CNet *connector = m_player.get_connector();
     connect( connector,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
-    connect( &m_player,SIGNAL(sig_package(QString,int,int,QString)),this,SLOT(on_package(QString,int,int,QString)) );
+    connect( &m_player,SIGNAL(sig_package(QString,int,int,QString,int)),this,SLOT(on_package(QString,int,int,QString,int)) );
 
     m_proto_bit = 0;  //在m_cb_code m_cb_msg之前设置
     connect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
@@ -181,6 +181,9 @@ void MainWindow::on_connect()
     }
 
     CNet *connector = m_player.get_connector();
+    if ( connector->is_valid() ) //已存在有效连接请先断开
+        return;
+
     connector->connect_host( ip,port.toInt() );
 }
 
@@ -237,9 +240,9 @@ void MainWindow::on_send()
     add_history( code,str_msg_name,str_send );
 }
 
-void MainWindow::on_package(const QString msg_name,int code,int err,const QString str)
+void MainWindow::on_package(const QString msg_name,int code,int err,const QString str,int len)
 {
-    QString str_info = QString("MSG:%1 CODE:%2 ERR:%3").arg(msg_name).arg(code).arg(err);
+    QString str_info = QString("MSG:%1 CODE:%2 ERR:%3 LEN:%4").arg(msg_name).arg(code).arg(err).arg(len);
 
     QString tmp = ">>>>>>>>>>";
     tmp.append(str_info);
@@ -375,6 +378,7 @@ void MainWindow::read_setting()
         cnt ++;
     }
     update_history();
+    m_cb_history.setCurrentIndex( -1 );  //设置为空，不然总是显示第一个，首次选择第一个无法触发change
 }
 
 void MainWindow::write_setting()

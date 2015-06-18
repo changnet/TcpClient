@@ -144,7 +144,7 @@ bool CNet::parse_protocol()
 
     int len = phead - 8; //减去code err长度
 
-    emit sig_protocol( code,err,data,len );
+    emit sig_protocol( code,err,data,len,m_r_buf.size() );
 }
 
 bool CNet::is_valid()

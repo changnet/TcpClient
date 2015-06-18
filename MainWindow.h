@@ -29,7 +29,7 @@ public:
     ~MainWindow();
 
 public slots:
-    void on_package(const QString msg_name, int code, int err, const QString str );
+    void on_package(const QString msg_name, int code, int err, const QString str , int len);
     void on_send();
     void on_connect();
     void on_disconnect();

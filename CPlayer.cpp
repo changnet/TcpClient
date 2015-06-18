@@ -6,7 +6,7 @@ CPlayer::CPlayer(QObject *parent)
 {
     m_connector = new CNet();
 
-    connect( m_connector,SIGNAL(sig_protocol(quint32,quint32,const char*,int)),this,SLOT(on_package(quint32,quint32,const char*,int)) );
+    connect( m_connector,SIGNAL(sig_protocol(quint32,quint32,const char*,int,int)),this,SLOT(on_package(quint32,quint32,const char*,int,int)) );
 }
 
 CPlayer::~CPlayer()
@@ -65,7 +65,7 @@ bool CPlayer::send_pkt(const int code, const int err, const PROTO_BUF &buf)
     return true;
 }
 
-void CPlayer::on_package(quint32 code, quint32 err, const char *buf, int len)
+void CPlayer::on_package(quint32 code, quint32 err, const char *buf, int len,int pack_len)
 {
     CConfig *config = CConfig::instance();
     const QString &msg_name = config->get_msg( code );
@@ -86,5 +86,5 @@ void CPlayer::on_package(quint32 code, quint32 err, const char *buf, int len)
 
     const QString &package_str = protoc->get_package_str();
 
-    emit sig_package(msg_name,code,err,package_str);
+    emit sig_package(msg_name,code,err,package_str,pack_len);
 }

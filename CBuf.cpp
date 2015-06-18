@@ -44,7 +44,12 @@ bool CBuf::parse_head()
 
 bool CBuf::parse_data()
 {
-    m_is_done = true;
+    //没有错误发生，总是返回true，表示解析是成功的，只是数据不足，还没开始解析
+    if ( size() >= m_buf_len )
+    {
+        m_is_done = true;
+    }
+
     return true;
 }
 

@@ -23,7 +23,7 @@ private:
 
 signals:
     void sig_msg(const QString &st,Color color,int timeout);
-    void sig_protocol( quint32 code,quint32 err,const char *buf,int len );
+    void sig_protocol( quint32 code,quint32 err,const char *buf,int len,int pack_len );
 public slots:
     void on_connected();
     void on_disconnected();
