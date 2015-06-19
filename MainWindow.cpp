@@ -123,13 +123,23 @@ MainWindow::MainWindow(QWidget *parent)
     m_cb_msg.setEditable( true );
 
     //右键菜单
-    m_output_clear = new QAction("clear",this);
+    m_output_clear = new QAction("Clear",this);
+    m_output_copy  = new QAction("Copy(&C)",this);
+    m_output_selectall = new QAction("Select All(&A)",this);
     m_te_output.setContextMenuPolicy(Qt::CustomContextMenu);
 
     m_output_menu = m_te_output.createStandardContextMenu();
+    m_output_menu->clear();
     m_output_menu->addAction( m_output_clear );
+    m_output_menu->addAction( m_output_copy );
+    m_output_menu->addAction( m_output_selectall );
 
-    connect( m_output_clear,SIGNAL(triggered()),this,SLOT(clear_output()) );
+    m_output_copy->setShortcut(QKeySequence::Copy );
+    m_output_selectall->setShortcut( QKeySequence::SelectAll );
+
+    connect( m_output_clear,SIGNAL(triggered()),&m_te_output,SLOT(clear()) );
+    connect( m_output_copy,SIGNAL(triggered()),&m_te_output,SLOT(copy()) );
+    connect( m_output_selectall,SIGNAL(triggered()),&m_te_output,SLOT(selectAll()) );
 
     connect( &m_te_output,SIGNAL(customContextMenuRequested(const QPoint&)),
                 this,SLOT(showContextMenu(const QPoint&)));
@@ -422,13 +432,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
-void MainWindow::clear_output()
-{
-    m_te_output.clear();
-}
-
 void MainWindow::showContextMenu(const QPoint &pt)
 {
+    QTextDocument *document = m_te_output.document();
+
+    m_output_clear->setEnabled( !document->isEmpty() );
+    m_output_copy->setEnabled( m_te_output.textCursor().hasSelection() );
+    m_output_selectall->setEnabled( !document->isEmpty() );
+
     m_output_menu->exec(m_te_output.mapToGlobal(pt));
 }
 

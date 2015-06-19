@@ -39,7 +39,6 @@ public slots:
     void on_msg_index_change(const QString &text);
     void on_history_index_change(int index);
 
-    void clear_output();
     void clear_history();
     void reset_config();
 
@@ -88,6 +87,8 @@ private:
 
     QMenu *m_output_menu;
     QAction *m_output_clear;
+    QAction *m_output_copy;
+    QAction *m_output_selectall;
     QAction *m_history_clear;
     QAction *m_config_reset;
 
