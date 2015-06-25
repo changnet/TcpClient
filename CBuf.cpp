@@ -16,7 +16,7 @@ CBuf::~CBuf()
 bool CBuf::parse()
 {
     //未收完足够数据
-    if ( size() < expect_len() )
+    if ( expect_len() > 0 )
         return true;
 
     return m_buf_len > 0 ? parse_data() : parse_head();
