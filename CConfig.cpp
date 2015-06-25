@@ -52,6 +52,7 @@ bool CConfig::parse_lua_config()
     return load_lua_cmd();
 }
 
+//msg有重复，这个函数只会找到第一个
 int CConfig::get_code(const QString &msg)
 {
     //不要求效率，直接遍历查找。不需要映射msg_to_code
@@ -75,9 +76,22 @@ const QString CConfig::get_msg(int code)
     return "";
 }
 
+const QString CConfig::get_client_msg(int code)
+{
+    if ( m_client_msg.contains( code ) )
+        return m_client_msg[code];
+
+    return "";
+}
+
 const QMap<int,QString> &CConfig::get_code_msg_list()
 {
     return m_code_to_msg;
+}
+
+const QMap<int,QString> &CConfig::get_client_msg_list()
+{
+    return m_client_msg;
 }
 
 /**
@@ -194,7 +208,17 @@ bool CConfig::get_proto_files(lua_State *L, const char *func)
         return false;
     }
 
-    lua_pcall( L,0,1,0 );
+    if ( lua_pcall( L,0,1,0 ) ) //The lua_pcall function returns 0
+    {
+        m_last_err = QString("lua call func %1 fail").arg(func);
+        return false;
+    }
+
+    if ( !lua_istable( L,-1 ) )
+    {
+        m_last_err = QString("func %1 not return a table").arg(func);
+        return false;
+    }
 
     int index = lua_gettop(L);                    //此时栈顶是table
     lua_pushnil(L);                               //压入初始key
@@ -217,6 +241,7 @@ bool CConfig::get_proto_files(lua_State *L, const char *func)
 bool CConfig::get_msgs(lua_State *L, const char *func)
 {
     m_code_to_msg.clear();
+    m_client_msg.clear();
 
     lua_getglobal( L,func );
     if ( !lua_isfunction( L,-1 ) )
@@ -225,17 +250,42 @@ bool CConfig::get_msgs(lua_State *L, const char *func)
         return false;
     }
 
-    lua_pcall( L,0,1,0 );
+    if ( lua_pcall( L,0,1,0 ) )
+    {
+        m_last_err = QString("lua call func %1 fail").arg(func);
+        return false;
+    }
 
-    int index = lua_gettop(L);                    //此时栈顶是table
+    if ( !lua_istable( L,-1 ) )
+    {
+        m_last_err = QString("func %1 not return a table").arg(func);
+        return false;
+    }
+
+    QSettings rsetting( "setting.ini",QSettings::IniFormat );
+
+    int cli_cmd_start = rsetting.value( "CLI_CMD_START",-1 ).toInt();
+    int cli_cmd_end   = rsetting.value( "CLI_CMD_END",-1 ).toInt();
+
+    int index = lua_gettop(L);                    //此时栈顶是table,可用lua_istable
+
     lua_pushnil(L);                               //压入初始key
     while(lua_next(L, index))                     //
     {
         QString msg_name(lua_tostring(L, -1));
         int code = lua_tonumber( L,-2 );
+
+        lua_pop(L, 1);                           // 将Item从栈里面弹出
         m_code_to_msg[code] = msg_name;
 
-        lua_pop(L, 1);                            // 将Item从栈里面弹出
+        //存在客户端协议区间并且不在这个区间内的，不处理
+        if ( (cli_cmd_start != cli_cmd_end)
+             && ( cli_cmd_start > code || cli_cmd_end < code ) )
+        {
+            continue;
+        }
+
+        m_client_msg[code] = msg_name;
     }
     lua_pop(L, 1);
 

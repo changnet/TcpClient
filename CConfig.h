@@ -18,6 +18,8 @@ public:
     int get_code( const QString &msg );
     const QString get_msg( int code );
     const QMap<int,QString> &get_code_msg_list();
+    const QString get_client_msg( int code );
+    const QMap<int,QString> &get_client_msg_list();
 
     const QString &get_last_err();
 private:
@@ -27,6 +29,7 @@ private:
     QString m_proto_source;
     QList<QString> m_proto_files;
     QMap<int,QString> m_code_to_msg;
+    QMap<int,QString> m_client_msg;
 
     static CConfig *m_config;
     QString m_last_err;

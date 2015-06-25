@@ -13,6 +13,7 @@
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QMenuBar>
+#include <QCompleter>
 
 #define PROTO_CODE_BIT  0x01
 #define PROTO_MSG_BIT   0x02
@@ -114,13 +115,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect( &m_player,SIGNAL(sig_package(QString,int,int,QString,int)),this,SLOT(on_package(QString,int,int,QString,int)) );
 
     m_proto_bit = 0;  //在m_cb_code m_cb_msg之前设置
+    m_cb_code.setEditable( true );   //only editable combobox have completer
+    m_cb_msg.setEditable( true );
+
+    QCompleter *completer = m_cb_code.completer();
+    completer->setCaseSensitivity(Qt::CaseInsensitive);
+    completer->setCompletionMode(QCompleter::PopupCompletion);
+
+    completer = m_cb_msg.completer();
+    completer->setCaseSensitivity(Qt::CaseInsensitive);
+    completer->setCompletionMode(QCompleter::PopupCompletion);
+
     connect( &m_cb_code,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_code_index_change(const QString &)) );
     connect( &m_cb_msg,SIGNAL(currentTextChanged(const QString &)),this,SLOT(on_msg_index_change(const QString &)) );
 
     m_te_output.setReadOnly( true );
     m_te_output.setLineWrapMode(QTextEdit::NoWrap);
-    m_cb_code.setEditable( true );
-    m_cb_msg.setEditable( true );
 
     //右键菜单
     m_output_clear = new QAction("Clear",this);
@@ -297,7 +307,7 @@ void MainWindow::on_parse_lua_config( )
         return;
     }
 
-    const QMap<int,QString> &code_msg_list = config->get_code_msg_list();
+    const QMap<int,QString> &code_msg_list = config->get_client_msg_list();
     QMap<int,QString>::const_iterator itr = code_msg_list.constBegin();
     while( itr != code_msg_list.constEnd() )
     {
@@ -318,6 +328,9 @@ void MainWindow::on_code_index_change(const QString &text)
 {
     Q_UNUSED(text);
 
+    if ( m_cb_code.findText(text) < 0 ) //手写未完成状态，不触发
+        return;
+
     if ( !(m_proto_bit & PROTO_CODE_BIT) )
         return;
 
@@ -335,14 +348,14 @@ void MainWindow::on_msg_index_change(const QString &text)
 {
     Q_UNUSED(text);
 
+    int index = m_cb_msg.findText(text);
+    if ( index < 0 ) //手写未完成状态，不触发
+        return;
+
     if ( !(m_proto_bit & PROTO_MSG_BIT) )
         return;
 
     m_proto_bit |= PROTO_MSG_BIT;  //自动重新默认为触发
-
-    int index = m_cb_msg.currentIndex();
-    if ( m_cb_code.count() - 1 < index )
-        return;
 
     m_cb_code.setCurrentIndex(index);
 
