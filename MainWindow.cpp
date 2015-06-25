@@ -112,6 +112,7 @@ MainWindow::MainWindow(QWidget *parent)
     CNet *connector = m_player.get_connector();
     connect( connector,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
     connect( &m_player,SIGNAL(sig_msg(QString,Color,int)),this,SLOT(on_status(QString,Color,int)) );
+    connect( &m_player,SIGNAL(sig_proto_err_msg(QString)),this,SLOT(on_proto_err_msg(QString)) );
     connect( &m_player,SIGNAL(sig_package(QString,int,int,QString,int)),this,SLOT(on_package(QString,int,int,QString,int)) );
 
     m_proto_bit = 0;  //在m_cb_code m_cb_msg之前设置
@@ -270,6 +271,17 @@ void MainWindow::on_package(const QString msg_name,int code,int err,const QStrin
 
     m_te_output.append(tmp);
     m_te_output.append(str);
+}
+
+void MainWindow::on_proto_err_msg(const QString &st)
+{
+    QString tmp = ">>>>>>>>>>PROTO ERR<<<<<<<<<<";
+    m_te_output.append( tmp );
+
+    m_te_output.setTextColor( QColor("red") );
+    m_te_output.append( st );
+    m_te_output.setTextColor( QColor("black") );
+    m_te_output.append( "" ); //add \n
 }
 
 void MainWindow::on_import_proto_files()

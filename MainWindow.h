@@ -34,6 +34,7 @@ public slots:
     void on_connect();
     void on_disconnect();
     void on_status( const QString &st,Color color = CL_BLACK,int timeout = 5000 );
+    void on_proto_err_msg( const QString &st );
 
     void on_code_index_change(const QString &text);
     void on_msg_index_change(const QString &text);

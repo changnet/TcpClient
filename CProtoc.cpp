@@ -217,7 +217,7 @@ bool CProtoc::parse_package(const QString &msg_name, const char *buf, int len)
     }
 
     bool ret = pmsg->ParseFromArray( buf,len );
-    if ( ret )
+    //if ( ret )  //still show package info after err
     {
         m_package_str = QString(pmsg->Utf8DebugString().c_str());
     }

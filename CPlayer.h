@@ -15,6 +15,7 @@ public:
     CNet *get_connector();
     bool send_package( const int code,const QString &msg_name,const QString &json );
 signals:
+    void sig_proto_err_msg( const QString &st );
     void sig_msg(const QString &st,Color color,int timeout);
     void sig_package( const QString msg_name,int code,int err,const QString str,int );
 private:

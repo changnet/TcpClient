@@ -79,9 +79,9 @@ void CPlayer::on_package(quint32 code, quint32 err, const char *buf, int len,int
     if ( !protoc->parse_package(msg_name,buf,len) )
     {
         const QString &err = protoc->get_last_err_str();
-        emit sig_msg( err,CL_RED,6000 );
+        emit sig_proto_err_msg( err );
 
-        return;
+        //show error,but still show package info
     }
 
     const QString &package_str = protoc->get_package_str();
